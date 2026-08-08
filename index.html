@@ -1,0 +1,1997 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SILOKER - Sistem Informasi Loker & Kunci Sekolah</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .touch-none { touch-action: none; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white !important; color: black !important; font-size: 10pt; }
+            #viewReceptionist, #toastContainer, #adminPinModal, #customModal, #printPreviewModal, #teacherHistoryModal, #pinChangeModal { display: none !important; }
+            #viewAdmin { display: block !important; padding: 0 !important; margin: 0 !important; width: 100% !important; max-width: 100% !important; }
+            #adminTabTeachers, #adminTabLockers, #adminTabStats, #adminTabCharts, #adminTabBackup, #adminTabSecurity { display: none !important; }
+            #adminTabReports { display: block !important; }
+            .shadow-sm, .shadow-md, .shadow-lg, .shadow-2xl { box-shadow: none !important; }
+            .bg-white, .bg-slate-50, .bg-indigo-50, .bg-amber-50, .bg-emerald-50 { background: transparent !important; }
+            .border, .border-slate-200\/80 { border-color: #94a3b8 !important; }
+            
+            .overflow-x-auto, .overflow-y-auto, .max-h-\[450px\], .max-h-\[560px\], .max-h-\[400px\] { 
+                max-height: none !important; 
+                overflow: visible !important; 
+            }
+            table { width: 100% !important; border-collapse: collapse !important; page-break-inside: auto; }
+            tr { page-break-inside: avoid; page-break-after: auto; }
+            th, td { border: 1px solid #475569 !important; padding: 6px 8px !important; color: black !important; }
+            thead { display: table-header-group !important; background-color: #f1f5f9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body class="h-full text-slate-800 flex flex-col justify-between">
+
+    <!-- MAIN WRAPPER -->
+    <div class="min-h-screen bg-slate-100 flex flex-col">
+        
+        <!-- HEADER BAR -->
+        <header class="bg-indigo-900 text-white shadow-lg border-b border-indigo-800 sticky top-0 z-30 no-print">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap justify-between items-center gap-3">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2 bg-indigo-700/60 rounded-xl border border-indigo-500/30">
+                        <svg class="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 0121 9z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-lg sm:text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                            SILOKER <span id="currentModeBadge" class="text-xs font-semibold px-2 py-0.5 bg-indigo-700 text-indigo-200 rounded-full">Resepsionis</span>
+                        </h1>
+                        <p class="text-xs text-indigo-200 hidden sm:block">Sistem Informasi Loker & Kunci Sekolah</p>
+                    </div>
+                </div>
+
+                <!-- NAVIGATION TABS & ACTIONS -->
+                <div class="flex items-center gap-2 text-xs font-medium">
+                    <div class="bg-indigo-950/80 p-1 rounded-xl border border-indigo-700/60 flex items-center gap-1">
+                        <button id="navReceptionistBtn" onclick="switchView('receptionist')" class="px-3 py-1.5 rounded-lg text-white font-semibold bg-indigo-600 transition shadow">
+                            🖥️ Resepsionis
+                        </button>
+                        <button id="navAdminBtn" onclick="requestAdminAccess()" class="px-3 py-1.5 rounded-lg text-indigo-200 hover:text-white hover:bg-indigo-800/60 transition">
+                            ⚙️ Admin Panel
+                        </button>
+                    </div>
+
+                    <!-- Sync Status Indicator -->
+                    <span id="syncIndicator" class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-indigo-950/70 border border-indigo-700/50 text-indigo-200" title="Status Google Apps Script Sync">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" id="syncDot"></span>
+                        <span id="syncText">Cloud Ready</span>
+                    </span>
+
+                    <span id="liveClock" class="hidden md:inline-block bg-indigo-950/70 text-indigo-200 px-3 py-1.5 rounded-lg border border-indigo-700/50 font-mono">
+                        --:--:-- WIB
+                    </span>
+                    
+                    <button onclick="exportToCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg transition shadow-sm flex items-center gap-1.5 font-semibold">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        <span class="hidden sm:inline">Ekspor Excel</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- VIEW 1: RECEPTIONIST MODE -->
+        <main id="viewReceptionist" class="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- LEFT COLUMN: INPUT FORM -->
+            <section class="lg:col-span-5 xl:col-span-4 space-y-6">
+                
+                <!-- STATS CARDS -->
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-sm text-center">
+                        <p class="text-[10px] uppercase tracking-wider font-bold text-slate-400">Total Transaksi</p>
+                        <p id="statTotal" class="text-xl font-bold text-slate-800 mt-0.5">0</p>
+                    </div>
+                    <div class="bg-amber-50 border border-amber-200/70 p-3 rounded-2xl shadow-sm text-center">
+                        <p class="text-[10px] uppercase tracking-wider font-bold text-amber-600">Dipinjam</p>
+                        <p id="statBorrowed" class="text-xl font-bold text-amber-700 mt-0.5">0</p>
+                    </div>
+                    <div class="bg-rose-50 border border-rose-200/70 p-3 rounded-2xl shadow-sm text-center">
+                        <p class="text-[10px] uppercase tracking-wider font-bold text-rose-600">Terlambat</p>
+                        <p id="statLate" class="text-xl font-bold text-rose-700 mt-0.5">0</p>
+                    </div>
+                </div>
+
+                <!-- FORM CARD -->
+                <div class="bg-white rounded-2xl shadow-md border border-slate-200/80 p-5 sm:p-6 space-y-4">
+                    <div class="border-b border-slate-100 pb-3 flex justify-between items-center">
+                        <div>
+                            <h2 class="text-base font-bold text-slate-800">Form Transaksi Kunci</h2>
+                            <p class="text-xs text-slate-500">Isi data & tanda tangan untuk mencatat</p>
+                        </div>
+                        <span class="text-xs bg-indigo-50 text-indigo-700 font-semibold px-2.5 py-1 rounded-full border border-indigo-200">Mandiri / Petugas</span>
+                    </div>
+
+                    <form id="keyForm" onsubmit="event.preventDefault();" class="space-y-3.5">
+                        
+                        <!-- ID GURU & NAMA GURU -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">ID / NIP <span class="text-rose-500">*</span></label>
+                                <input type="text" id="teacherId" list="teacherIdSuggestions" oninput="onTeacherIdChange()" placeholder="101" 
+                                       class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition font-mono font-semibold">
+                                <datalist id="teacherIdSuggestions"></datalist>
+                            </div>
+                            <div class="sm:col-span-2">
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Guru / Pengajar <span class="text-rose-500">*</span></label>
+                                <input type="text" id="teacherName" list="teacherNameSuggestions" oninput="onTeacherNameChange()" placeholder="Nama Guru" 
+                                       class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition">
+                                <datalist id="teacherNameSuggestions"></datalist>
+                            </div>
+                        </div>
+
+                        <!-- KELAS / LOKER -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Loker Kelas <span class="text-rose-500">*</span></label>
+                            <select id="lockerClass" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition">
+                                <option value="">-- Pilih Loker Kelas --</option>
+                            </select>
+                        </div>
+
+                        <!-- JAM MENGAJAR (1 - 10) -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Dari Jam Ke-</label>
+                                <select id="startPeriod" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none">
+                                    <option value="1">Jam Ke-1</option><option value="2">Jam Ke-2</option><option value="3">Jam Ke-3</option><option value="4">Jam Ke-4</option><option value="5">Jam Ke-5</option><option value="6">Jam Ke-6</option><option value="7">Jam Ke-7</option><option value="8">Jam Ke-8</option><option value="9">Jam Ke-9</option><option value="10">Jam Ke-10</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">s/d Jam Ke-</label>
+                                <select id="endPeriod" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none">
+                                    <option value="1">Jam Ke-1</option><option value="2" selected>Jam Ke-2</option><option value="3">Jam Ke-3</option><option value="4">Jam Ke-4</option><option value="5">Jam Ke-5</option><option value="6">Jam Ke-6</option><option value="7">Jam Ke-7</option><option value="8">Jam Ke-8</option><option value="9">Jam Ke-9</option><option value="10" selected>Jam Ke-10</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- TANDA TANGAN DIGITAL CANVAS -->
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="block text-xs font-semibold text-slate-700">Tanda Tangan Digital <span class="text-rose-500">*</span></label>
+                                <button type="button" onclick="clearCanvas()" class="text-xs font-medium text-indigo-600 hover:text-indigo-800 transition">
+                                    🔄 Bersihkan TTD
+                                </button>
+                            </div>
+                            <div class="border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 overflow-hidden relative group">
+                                <canvas id="signatureCanvas" class="w-full h-28 touch-none cursor-crosshair bg-slate-50"></canvas>
+                                <div id="signaturePlaceholder" class="absolute inset-0 flex items-center justify-center pointer-events-none text-slate-400 text-xs">
+                                    Goreskan tanda tangan di sini
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- BUTTONS -->
+                        <div class="grid grid-cols-2 gap-3 pt-2">
+                            <button type="button" onclick="recordAction('Ambil')" 
+                                    class="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold py-3 rounded-xl text-sm shadow-md shadow-indigo-200 transition duration-150 flex justify-center items-center gap-1.5">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                                <span>AMBIL KUNCI</span>
+                            </button>
+                            <button type="button" onclick="recordAction('Kembali')" 
+                                    class="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3 rounded-xl text-sm shadow-md shadow-emerald-200 transition duration-150 flex justify-center items-center gap-1.5">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
+                                <span>KEMBALIKAN</span>
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+
+            </section>
+
+            <!-- RIGHT COLUMN: REAL-TIME DASHBOARD & LOG TABLE -->
+            <section class="lg:col-span-7 xl:col-span-8 flex flex-col space-y-4">
+                
+                <!-- STAGE 1: REAL-TIME LOCKER STATUS DASHBOARD -->
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h2 class="text-sm font-bold text-slate-800">🟢 Status Loker Real-Time</h2>
+                            <p class="text-[11px] text-slate-500">Klik kartu loker untuk melihat rincian peminjam aktif</p>
+                        </div>
+                        <span class="text-[11px] bg-slate-100 px-2.5 py-1 rounded-lg font-semibold text-slate-600">Klik Kartu untuk Detail</span>
+                    </div>
+                    <div id="realtimeLockerDashboard" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 max-h-48 overflow-y-auto p-1">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 flex flex-wrap gap-3 items-center justify-between">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-800">📋 Catatan Peminjaman Aktif & Riwayat</h2>
+                        <p class="text-xs text-slate-500">Daftar transaksi aktif & riwayat perpindahan kunci</p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                        <div class="relative flex-1 sm:w-48">
+                            <input type="text" id="searchInput" onkeyup="filterLogs()" placeholder="Cari ID / nama / kelas..." 
+                                   class="w-full pl-8 pr-3 py-1.5 bg-slate-100 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <svg class="w-4 h-4 text-slate-400 absolute left-2.5 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        </div>
+
+                        <select id="filterStatus" onchange="filterLogs()" class="px-2.5 py-1.5 bg-slate-100 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 outline-none">
+                            <option value="ALL">Semua Status</option>
+                            <option value="BORROWED">Sedang Dipinjam</option>
+                            <option value="RETURNED">Sudah Dikembalikan</option>
+                            <option value="LATE">Terlambat</option>
+                        </select>
+
+                        <button onclick="promptResetAll()" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Reset Data Hari Ini">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-md border border-slate-200/80 overflow-hidden flex-1 flex flex-col">
+                    <div class="overflow-x-auto overflow-y-auto max-h-[420px] flex-1">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead class="bg-slate-50 text-slate-600 uppercase tracking-wider font-semibold sticky top-0 border-b border-slate-200 z-10">
+                                <tr>
+                                    <th class="p-3">Waktu Ambil</th>
+                                    <th class="p-3">ID Guru</th>
+                                    <th class="p-3">Nama Guru</th>
+                                    <th class="p-3">Loker Kelas</th>
+                                    <th class="p-3">Durasi / Status</th>
+                                    <th class="p-3 text-center">TTd</th>
+                                    <th class="p-3 text-right">Aksi Cepat</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logTableBody" class="divide-y divide-slate-100 font-medium">
+                                <!-- Generated by JS -->
+                            </tbody>
+                        </table>
+
+                        <div id="emptyState" class="hidden p-12 text-center">
+                            <div class="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            </div>
+                            <p class="text-sm font-semibold text-slate-700">Belum Ada Transaksi</p>
+                            <p class="text-xs text-slate-400 mt-0.5">Catatan peminjaman kunci akan tampil di sini secara real-time.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+        </main>
+
+        <!-- VIEW 2: ADMIN PANEL MODE -->
+        <main id="viewAdmin" class="hidden max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 flex-1 space-y-6">
+            
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 flex flex-wrap justify-between items-center gap-4 no-print">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 bg-indigo-100 text-indigo-800 rounded-xl">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800">Panel Kelola Admin</h2>
+                        <p class="text-xs text-slate-500">Master Data, Statistik, Grafik, Backup, Sinkronisasi Cloud, & Keamanan</p>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center bg-slate-100 p-1 rounded-xl border border-slate-200 gap-1">
+                    <button id="adminTabTeachersBtn" onclick="switchAdminSubTab('teachers')" class="px-3 py-1.5 rounded-lg text-xs font-bold text-indigo-700 bg-white shadow-sm transition">👨‍🏫 Guru</button>
+                    <button id="adminTabLockersBtn" onclick="switchAdminSubTab('lockers')" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-indigo-700 transition">🚪 Kelas</button>
+                    <button id="adminTabStatsBtn" onclick="switchAdminSubTab('stats')" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-indigo-700 transition">📈 Statistik</button>
+                    <button id="adminTabChartsBtn" onclick="switchAdminSubTab('charts')" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-indigo-700 transition">📊 Grafik</button>
+                    <button id="adminTabReportsBtn" onclick="switchAdminSubTab('reports')" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-indigo-700 transition">📑 Laporan</button>
+                    <button id="adminTabBackupBtn" onclick="switchAdminSubTab('backup')" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-indigo-700 transition">💾 Backup</button>
+                    <button id="adminTabSecurityBtn" onclick="switchAdminSubTab('security')" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-indigo-700 transition">🔒 Keamanan</button>
+                    <button onclick="adminLogout()" class="px-3 py-1.5 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 transition">🚪 Logout</button>
+                </div>
+            </div>
+
+            <!-- ADMIN SECTION 1: MASTER DATA GURU -->
+            <div id="adminTabTeachers" class="space-y-4">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <div class="lg:col-span-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+                        <div class="border-b border-slate-100 pb-3 flex justify-between items-center">
+                            <h3 id="teacherFormTitle" class="text-sm font-bold text-slate-800">Tambah Guru Baru</h3>
+                            <button id="teacherFormResetBtn" onclick="resetTeacherForm()" class="hidden text-xs text-rose-600 hover:underline">Batal Edit</button>
+                        </div>
+
+                        <form id="teacherMasterForm" onsubmit="saveTeacherMaster(event)" class="space-y-3">
+                            <input type="hidden" id="editTeacherIndex" value="-1">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">ID / NIP Guru <span class="text-rose-500">*</span></label>
+                                <input type="text" id="adminTeacherId" required placeholder="Contoh: 106" 
+                                       class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-semibold focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap & Gelar <span class="text-rose-500">*</span></label>
+                                <input type="text" id="adminTeacherName" required placeholder="Contoh: Drs. Wahyu Hidayat, M.Pd" 
+                                       class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none">
+                            </div>
+                            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold py-2.5 rounded-xl text-xs shadow-md transition">
+                                💾 Simpan Data Guru
+                            </button>
+                        </form>
+
+                        <div class="pt-4 border-t border-slate-100 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <h4 class="text-xs font-bold text-slate-800">📥 Impor dari Excel / CSV</h4>
+                                <button type="button" onclick="downloadTeacherTemplate()" class="text-[11px] text-indigo-600 hover:underline font-semibold flex items-center gap-0.5">
+                                    <span>📄 Template Excel</span>
+                                </button>
+                            </div>
+                            <p class="text-[11px] text-slate-500">Unggah file Excel (.xlsx / .xls) berisi data ID/NIP dan Nama Guru.</p>
+                            <label class="flex flex-col items-center justify-center p-3 border-2 border-dashed border-indigo-200 hover:border-indigo-400 bg-indigo-50/50 hover:bg-indigo-50 rounded-xl cursor-pointer transition text-center group">
+                                <span class="text-xs font-semibold text-indigo-700 group-hover:text-indigo-900 flex items-center gap-1.5">
+                                    📂 Klik untuk Pilih File Excel
+                                </span>
+                                <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" onchange="handleExcelImport(event)" class="hidden">
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-8 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-3 flex flex-col">
+                        <div class="flex flex-wrap justify-between items-center gap-2">
+                            <h3 class="text-sm font-bold text-slate-800">Daftar Guru Terdaftar (<span id="teacherCount">0</span>)</h3>
+                            <input type="text" id="searchTeacherAdmin" onkeyup="renderAdminTeachers()" placeholder="Cari ID / Nama Guru..." 
+                                   class="px-3 py-1.5 bg-slate-100 border border-slate-200 rounded-lg text-xs outline-none w-full sm:w-48">
+                        </div>
+
+                        <div class="overflow-x-auto max-h-[400px] border border-slate-100 rounded-xl">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead class="bg-slate-50 text-slate-600 uppercase font-semibold sticky top-0 border-b border-slate-200">
+                                    <tr>
+                                        <th class="p-3">No</th>
+                                        <th class="p-3">ID / NIP</th>
+                                        <th class="p-3">Nama Guru</th>
+                                        <th class="p-3 text-right">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminTeacherTableBody" class="divide-y divide-slate-100 font-medium">
+                                    <!-- Dynamic -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ADMIN SECTION 2: MASTER DATA KELAS / LOKER -->
+            <div id="adminTabLockers" class="hidden space-y-4">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <div class="lg:col-span-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+                        <div class="border-b border-slate-100 pb-3">
+                            <h3 class="text-sm font-bold text-slate-800">Tambah Loker Kelas</h3>
+                            <p class="text-xs text-slate-500">Daftarkan ruang kelas yang memiliki kunci loker</p>
+                        </div>
+
+                        <form id="lockerMasterForm" onsubmit="saveLockerMaster(event)" class="space-y-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Tingkat / Kategori Kelas</label>
+                                <select id="adminLockerCategory" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <option value="Kelas X">Kelas X</option>
+                                    <option value="Kelas XI">Kelas XI</option>
+                                    <option value="Kelas XII">Kelas XII</option>
+                                    <option value="Khusus / Lab">Khusus / Lab / Ruangan</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Loker / Kelas <span class="text-rose-500">*</span></label>
+                                <input type="text" id="adminLockerName" required placeholder="Contoh: X IPA 3 atau Lab Komputer" 
+                                       class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 outline-none">
+                            </div>
+                            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold py-2.5 rounded-xl text-xs shadow-md transition">
+                                ➕ Tambah Loker Kelas
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="lg:col-span-8 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-3">
+                        <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                            <h3 class="text-sm font-bold text-slate-800">Daftar Loker Kelas Aktif (<span id="lockerCount">0</span>)</h3>
+                            <button onclick="resetLockersToDefault()" class="text-xs text-indigo-600 hover:underline">Reset ke Default Sekolah</button>
+                        </div>
+
+                        <div id="adminLockerGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-[400px] overflow-y-auto p-1">
+                            <!-- Dynamic Lockers Card -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ADMIN SECTION 3: STATISTIK PENGGUNAAN (STAGE 4) -->
+            <div id="adminTabStats" class="hidden space-y-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Transaksi</p>
+                        <p id="statTotalAll" class="text-3xl font-black text-slate-800 mt-2">0</p>
+                        <p class="text-[11px] text-slate-500 mt-1">Seluruh catatan historis</p>
+                    </div>
+                    <div class="bg-amber-50 p-5 rounded-2xl border border-amber-200/80 shadow-sm">
+                        <p class="text-xs font-bold text-amber-600 uppercase tracking-wider">Sedang Dipinjam</p>
+                        <p id="statBorrowAll" class="text-3xl font-black text-amber-700 mt-2">0</p>
+                        <p class="text-[11px] text-amber-600 mt-1">Kunci belum dikembalikan</p>
+                    </div>
+                    <div class="bg-emerald-50 p-5 rounded-2xl border border-emerald-200/80 shadow-sm">
+                        <p class="text-xs font-bold text-emerald-600 uppercase tracking-wider">Sudah Kembali</p>
+                        <p id="statReturnAll" class="text-3xl font-black text-emerald-700 mt-2">0</p>
+                        <p class="text-[11px] text-emerald-600 mt-1">Transaksi selesai</p>
+                    </div>
+                    <div class="bg-rose-50 p-5 rounded-2xl border border-rose-200/80 shadow-sm">
+                        <p class="text-xs font-bold text-rose-600 uppercase tracking-wider">Terlambat (&gt;4 Jam)</p>
+                        <p id="statLateAll" class="text-3xl font-black text-rose-700 mt-2">0</p>
+                        <p class="text-[11px] text-rose-600 mt-1">Melebihi batas waktu wajar</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-3">
+                        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                            <span>👨‍🏫</span> Guru Paling Aktif Meminjam
+                        </h3>
+                        <div id="topTeachersList" class="space-y-2">
+                            <!-- Rendered by JS -->
+                        </div>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-3">
+                        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                            <span>🚪</span> Loker Paling Sering Digunakan
+                        </h3>
+                        <div id="topLockersList" class="space-y-2">
+                            <!-- Rendered by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ADMIN SECTION 4: GRAFIK STATISTIK (STAGE 5) -->
+            <div id="adminTabCharts" class="hidden space-y-6">
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-sm font-bold text-slate-800">📊 Grafik Analisis Penggunaan Loker & Guru</h3>
+                        <button onclick="renderCharts()" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg font-semibold transition">🔄 Muat Ulang Grafik</button>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4">
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 h-72 flex flex-col items-center justify-center">
+                            <canvas id="chartDailyTransactions"></canvas>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 h-72 flex flex-col items-center justify-center">
+                            <canvas id="chartTopLockers"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ADMIN SECTION 5: LAPORAN & ANALYTICS -->
+            <div id="adminTabReports" class="hidden space-y-6">
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 flex flex-wrap justify-between items-center gap-3 no-print">
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs font-bold text-slate-700">Periode Laporan:</label>
+                        <select id="reportPeriodFilter" onchange="generateReport()" class="px-3 py-1.5 bg-slate-100 border border-slate-200 rounded-lg text-xs font-medium outline-none">
+                            <option value="ALL">Semua Waktu</option>
+                            <option value="TODAY">Hari Ini</option>
+                            <option value="WEEK">7 Hari Terakhir</option>
+                            <option value="30_DAYS">30 Hari Terakhir</option>
+                            <option value="THIS_MONTH">Bulan Ini</option>
+                            <option value="LAST_MONTH">Bulan Lalu</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <button onclick="triggerPrintReport()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1 shadow">
+                            🖨️ Pratinjau & Cetak Laporan
+                        </button>
+                        <button onclick="exportToCSV()" class="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 transition flex items-center gap-1">
+                            📥 Unduh Excel / CSV
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 no-print">
+                    <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl text-center">
+                        <p class="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Total Aktivitas Pengambilan</p>
+                        <p id="reportTotalCount" class="text-2xl font-black text-indigo-900 mt-1">0</p>
+                    </div>
+                    <div class="bg-amber-50 border border-amber-100 p-4 rounded-2xl text-center">
+                        <p class="text-xs font-semibold text-amber-600 uppercase tracking-wider">Loker Paling Sering Diambil</p>
+                        <p id="reportTopLocker" class="text-lg font-bold text-amber-900 mt-1">-</p>
+                    </div>
+                    <div class="bg-emerald-50 border border-emerald-100 p-4 rounded-2xl text-center">
+                        <p class="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Guru Paling Aktif</p>
+                        <p id="reportTopTeacher" class="text-lg font-bold text-emerald-900 mt-1">-</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 flex justify-between items-center">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-800">Rekapitulasi Lengkap Transaksi Kunci Loker</h3>
+                            <p id="printDateStamp" class="text-xs text-slate-500 hidden print-only mt-0.5"></p>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto max-h-[450px]">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead class="bg-slate-50 text-slate-600 uppercase font-semibold sticky top-0 border-b border-slate-200">
+                                <tr>
+                                    <th class="p-3">Waktu Ambil</th>
+                                    <th class="p-3">ID Guru</th>
+                                    <th class="p-3">Nama Guru</th>
+                                    <th class="p-3">Loker Kelas</th>
+                                    <th class="p-3">Durasi</th>
+                                    <th class="p-3">Status</th>
+                                    <th class="p-3 text-center">Pratinjau TTD</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reportTableBody" class="divide-y divide-slate-100 font-medium">
+                                <!-- Dynamic -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ADMIN SECTION 6: BACKUP & RESTORE (STAGE 7 & 8) -->
+            <div id="adminTabBackup" class="hidden space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- JSON Backup & Restore -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+                        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2"><span>📂</span> Backup & Restore JSON</h3>
+                        <p class="text-xs text-slate-500">Cadangkan seluruh database lokal (transaksi, guru, loker, pin) ke dalam satu file format JSON.</p>
+                        <div class="flex gap-2 pt-2">
+                            <button onclick="exportJSONBackup()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-xs transition shadow">
+                                📤 Export JSON
+                            </button>
+                            <label class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer text-center">
+                                📥 Import JSON
+                                <input type="file" accept=".json" onchange="importJSONBackup(event)" class="hidden">
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Excel Backup & Restore -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+                        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2"><span>📊</span> Backup & Restore Excel</h3>
+                        <p class="text-xs text-slate-500">Unduh rekap data transaksi ke Excel atau pulihkan data dari file Excel cadangan.</p>
+                        <div class="flex gap-2 pt-2">
+                            <button onclick="exportExcelBackup()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs transition shadow">
+                                📥 Export Excel
+                            </button>
+                            <label class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer text-center">
+                                📤 Restore Excel
+                                <input type="file" accept=".xlsx, .xls" onchange="importExcelBackup(event)" class="hidden">
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Google Apps Script Cloud Sync Settings (Stage 8) -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+                    <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2"><span>☁️</span> Sinkronisasi Google Apps Script Spreadsheet</h3>
+                    <p class="text-xs text-slate-500">Hubungkan URL Web App Google Apps Script Anda agar setiap transaksi otomatis dikirim ke Google Sheets (dengan antrean offline otomatis).</p>
+                    
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">URL Web App Google Apps Script</label>
+                            <input type="text" id="gasUrlInput" placeholder="https://script.google.com/macros/s/.../exec" 
+                                   class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span id="offlineQueueCount" class="text-xs font-semibold text-slate-600">Antrean offline tersimpan: 0 data</span>
+                            <div class="flex gap-2">
+                                <button onclick="saveGasUrl()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition">Simpan URL</button>
+                                <button onclick="manualSyncQueue()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition">Sinkronkan Sekarang</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ADMIN SECTION 7: KEAMANAN (STAGE 9) -->
+            <div id="adminTabSecurity" class="hidden space-y-6">
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4 max-w-md">
+                    <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2"><span>🔒</span> Pengaturan Keamanan PIN Admin</h3>
+                    <p class="text-xs text-slate-500">Ganti PIN akses admin untuk menjaga kerahasiaan panel manajemen sekolah.</p>
+
+                    <form onsubmit="changeAdminPin(event)" class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">PIN Lama</label>
+                            <input type="password" id="oldPinInput" required maxlength="6" placeholder="****" 
+                                   class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">PIN Baru (Min 4 Karakter)</label>
+                            <input type="password" id="newPinInput" required maxlength="6" placeholder="****" 
+                                   class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Konfirmasi PIN Baru</label>
+                            <input type="password" id="confirmPinInput" required maxlength="6" placeholder="****" 
+                                   class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none font-mono">
+                        </div>
+                        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-xs shadow transition">
+                            Ubah PIN Admin
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- FOOTER -->
+        <footer class="bg-white border-t border-slate-200 py-3 text-center text-xs text-slate-400 no-print">
+            SILOKER &copy; 2026 - Sistem Informasi Loker & Kunci Sekolah
+        </footer>
+
+    </div>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none no-print"></div>
+
+    <!-- ADMIN AUTH PIN MODAL -->
+    <div id="adminPinModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-xs w-full p-6 shadow-2xl space-y-4 border border-slate-100 text-center">
+            <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+            </div>
+            <div>
+                <h3 class="font-bold text-slate-800 text-base">Akses Admin</h3>
+                <p class="text-xs text-slate-500 mt-0.5">Masukkan PIN Admin (Default: <span class="font-mono font-bold text-indigo-600">1234</span>)</p>
+            </div>
+            <input type="password" id="adminPinInput" maxlength="6" placeholder="****" 
+                   class="w-full text-center text-xl font-bold tracking-widest py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeAdminPinModal()" class="w-1/2 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition">Batal</button>
+                <button onclick="verifyAdminPin()" class="w-1/2 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl transition shadow">Masuk</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- STAGE 6: TEACHER HISTORY POPUP MODAL -->
+    <div id="teacherHistoryModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-slate-100">
+            <div class="bg-indigo-900 text-white px-5 py-3.5 flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-2">
+                    <span class="text-lg">👨‍🏫</span>
+                    <h3 id="modalTeacherTitle" class="font-bold text-sm sm:text-base">Riwayat Peminjaman Guru</h3>
+                </div>
+                <button onclick="closeTeacherHistoryModal()" class="text-slate-300 hover:text-white font-bold text-sm">✕ Tutup</button>
+            </div>
+            <div class="p-5 overflow-y-auto flex-1 bg-slate-50">
+                <div class="overflow-x-auto bg-white rounded-xl border border-slate-200 shadow-sm">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead class="bg-slate-100 text-slate-700 font-semibold uppercase">
+                            <tr>
+                                <th class="p-3">Waktu Ambil</th>
+                                <th class="p-3">Loker Kelas</th>
+                                <th class="p-3">Jam Ke-</th>
+                                <th class="p-3">Status</th>
+                                <th class="p-3">Durasi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="teacherHistoryTableBody" class="divide-y divide-slate-100">
+                            <!-- Rendered by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STAGE 1: LOCKER DETAIL ACTIVE MODAL -->
+    <div id="lockerDetailModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-100">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 id="detailLockerTitle" class="font-bold text-slate-800 text-base">Detail Loker</h3>
+                <button onclick="closeLockerDetailModal()" class="text-slate-400 hover:text-slate-600 font-bold">✕</button>
+            </div>
+            <div id="detailLockerContent" class="space-y-2 text-xs">
+                <!-- Rendered by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- CUSTOM CONFIRM RESET MODAL -->
+    <div id="customModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4 border border-slate-100">
+            <div class="flex items-center gap-3 text-rose-600">
+                <div class="p-2 bg-rose-100 rounded-xl">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                </div>
+                <h3 class="font-bold text-slate-800 text-base">Konfirmasi Reset</h3>
+            </div>
+            <p class="text-xs text-slate-600 leading-relaxed">Apakah Anda yakin ingin menghapus seluruh catatan transaksi hari ini? Tindakan ini tidak dapat dibatalkan.</p>
+            <div class="flex gap-2 justify-end pt-2">
+                <button onclick="closeModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition">Batal</button>
+                <button onclick="confirmResetAll()" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs rounded-xl transition shadow-md shadow-rose-200">Ya, Hapus Data</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PRINT PREVIEW MODAL -->
+    <div id="printPreviewModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex flex-col items-center justify-center p-2 sm:p-4 no-print">
+        <div class="bg-white rounded-2xl max-w-4xl w-full h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200">
+            <div class="bg-indigo-900 text-white px-5 py-3 flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-2">
+                    <span class="text-lg">🖨️</span>
+                    <h3 class="font-bold text-sm sm:text-base">Pratinjau Dokumen Cetak Laporan</h3>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="executePrint()" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                        <span>Cetak / Simpan PDF</span>
+                    </button>
+                    <button onclick="closePrintPreviewModal()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition">
+                        ✕ Tutup
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-6 sm:p-8 overflow-y-auto flex-1 bg-slate-100">
+                <div id="printPreviewPaper" class="bg-white p-6 sm:p-10 rounded-lg shadow-md max-w-3xl mx-auto border border-slate-200 text-slate-900">
+                    <!-- Dynamic preview rendered by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN JAVASCRIPT REFACTOR MODULES (STAGE 10) -->
+    <script>
+        // ==========================================
+        // 1. STORAGE MODULE (utils.js & storage.js)
+        // ==========================================
+        const DEFAULT_TEACHERS = [
+            { id: "101", name: "Drs. Ahmad Dahlan" },
+            { id: "102", name: "Siti Rahmawati, S.Pd" },
+            { id: "103", name: "Budi Santoso, M.T" },
+            { id: "104", name: "Nur Indah, S.Si" },
+            { id: "105", name: "Eko Prasetyo, S.Kom" }
+        ];
+
+        const DEFAULT_LOCKERS = [
+            { category: "Kelas X", name: "X IPA 1" },
+            { category: "Kelas X", name: "X IPA 2" },
+            { category: "Kelas X", name: "X IPS 1" },
+            { category: "Kelas X", name: "X IPS 2" },
+            { category: "Kelas XI", name: "XI IPA 1" },
+            { category: "Kelas XI", name: "XI IPA 2" },
+            { category: "Kelas XI", name: "XI IPS 1" },
+            { category: "Kelas XI", name: "XI IPS 2" },
+            { category: "Kelas XII", name: "XII IPA 1" },
+            { category: "Kelas XII", name: "XII IPA 2" },
+            { category: "Kelas XII", name: "XII IPS 1" },
+            { category: "Kelas XII", name: "XII IPS 2" }
+        ];
+
+        // LocalStorage Initialization (Compatible with Stage 2 transaction updates & Stage 9 hashed/plain PIN)
+        let transactions = JSON.parse(localStorage.getItem('schoolLockerTransactions_v2')) || [];
+        let teacherDB = JSON.parse(localStorage.getItem('schoolTeacherDB_v1')) || DEFAULT_TEACHERS;
+        let lockerDB = JSON.parse(localStorage.getItem('schoolLockerDB_v1')) || DEFAULT_LOCKERS;
+        let adminPin = localStorage.getItem('schoolAdminPin_v1') || '1234';
+        let gasWebhookUrl = localStorage.getItem('schoolGasWebhookUrl_v1') || '';
+        let offlineQueue = JSON.parse(localStorage.getItem('schoolOfflineQueue_v1')) || [];
+        let isAdminAuthenticated = false;
+        let autoLogoutTimer = null;
+        let chartInstances = {};
+
+        // Utility: Escape HTML for security
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        }
+
+        // Utility: Simple hash for PIN (Stage 9 security requirement)
+        function hashPin(pin) {
+            let hash = 0;
+            for (let i = 0; i < pin.length; i++) {
+                hash = ((hash << 5) - hash) + pin.charCodeAt(i);
+                hash |= 0;
+            }
+            return hash.toString();
+        }
+
+        // ==========================================
+        // 2. CLOUD SYNC & OFFLINE QUEUE MODULE (Stage 8)
+        // ==========================================
+        async function syncTransactionToCloud(txData) {
+            if (!gasWebhookUrl) return;
+            const payload = {
+                id: txData.id,
+                teacherId: txData.teacherId,
+                teacherName: txData.teacherName,
+                lockerClass: txData.lockerClass,
+                startPeriod: txData.startPeriod,
+                endPeriod: txData.endPeriod,
+                timeTake: txData.timeTake,
+                timeReturn: txData.timeReturn || '',
+                duration: txData.duration || '',
+                status: txData.status
+            };
+
+            try {
+                const response = await fetch(gasWebhookUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                document.getElementById('syncDot').className = "w-2 h-2 rounded-full bg-emerald-400";
+                document.getElementById('syncText').innerText = "Cloud Synced";
+            } catch (err) {
+                // Offline fallback
+                offlineQueue.push(payload);
+                localStorage.setItem('schoolOfflineQueue_v1', JSON.stringify(offlineQueue));
+                document.getElementById('syncDot').className = "w-2 h-2 rounded-full bg-amber-400 animate-pulse";
+                document.getElementById('syncText').innerText = "Offline Queue (" + offlineQueue.length + ")";
+                updateQueueCounter();
+            }
+        }
+
+        async function manualSyncQueue() {
+            if (!gasWebhookUrl) {
+                showToast('URL Google Apps Script belum disetel!', 'warning');
+                return;
+            }
+            if (offlineQueue.length === 0) {
+                showToast('Antrean offline kosong.', 'info');
+                return;
+            }
+            showToast('Menyinkronkan ' + offlineQueue.length + ' data ke Cloud...', 'info');
+            let failed = [];
+            for (let item of offlineQueue) {
+                try {
+                    await fetch(gasWebhookUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(item)
+                    });
+                } catch (e) {
+                    failed.push(item);
+                }
+            }
+            offlineQueue = failed;
+            localStorage.setItem('schoolOfflineQueue_v1', JSON.stringify(offlineQueue));
+            updateQueueCounter();
+            showToast('Sinkronisasi cloud selesai!', 'success');
+        }
+
+        function updateQueueCounter() {
+            const el = document.getElementById('offlineQueueCount');
+            if (el) el.innerText = "Antrean offline tersimpan: " + offlineQueue.length + " data";
+        }
+
+        function saveGasUrl() {
+            const url = document.getElementById('gasUrlInput').value.trim();
+            gasWebhookUrl = url;
+            localStorage.setItem('schoolGasWebhookUrl_v1', url);
+            showToast('URL Google Apps Script disimpan!', 'success');
+        }
+
+        // ==========================================
+        // 3. CANVAS & SIGNATURE MODULE
+        // ==========================================
+        const canvas = document.getElementById('signatureCanvas');
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+        let hasSigned = false;
+
+        function resizeCanvas() {
+            if (!canvas) return;
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = 112; 
+            ctx.lineWidth = 2.5;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = '#1e293b';
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('load', () => {
+            resizeCanvas();
+            syncMasterDataToSelects();
+            renderTransactions();
+            renderRealtimeDashboard();
+            updateClock();
+            setInterval(updateClock, 1000);
+            setInterval(checkLateTransactions, 60000); // Check late transactions every min
+            updateQueueCounter();
+            const urlInput = document.getElementById('gasUrlInput');
+            if (urlInput) urlInput.value = gasWebhookUrl;
+        });
+
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            hasSigned = true;
+            const placeholder = document.getElementById('signaturePlaceholder');
+            if (placeholder) placeholder.classList.add('hidden');
+            const pos = getPos(e);
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            e.preventDefault();
+            const pos = getPos(e);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+        }
+
+        function stopDrawing() { isDrawing = false; }
+
+        if (canvas) {
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseleave', stopDrawing);
+            canvas.addEventListener('touchstart', startDrawing);
+            canvas.addEventListener('touchmove', draw);
+            canvas.addEventListener('touchend', stopDrawing);
+        }
+
+        function clearCanvas() {
+            if (!canvas) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            hasSigned = false;
+            const placeholder = document.getElementById('signaturePlaceholder');
+            if (placeholder) placeholder.classList.remove('hidden');
+        }
+
+        // ==========================================
+        // 4. TRANSACTION & DASHBOARD MODULE (Stages 1, 2, 3)
+        // ==========================================
+        function checkLateTransactions() {
+            let updated = false;
+            const now = new Date();
+            transactions.forEach(tx => {
+                if (tx.status === 'BORROWED') {
+                    const takeTime = new Date(tx.rawTakeTime);
+                    const diffHours = (now - takeTime) / (1000 * 60 * 60);
+                    if (diffHours > 4) { // Stage 3: > 4 hours is late
+                        tx.status = 'LATE';
+                        updated = true;
+                    }
+                }
+            });
+            if (updated) {
+                saveAndSyncTransactions();
+            }
+        }
+
+        function recordAction(actionType) {
+            const teacherId = document.getElementById('teacherId').value.trim() || '-';
+            const teacherName = document.getElementById('teacherName').value.trim();
+            const lockerClass = document.getElementById('lockerClass').value;
+            const startPeriod = document.getElementById('startPeriod').value;
+            const endPeriod = document.getElementById('endPeriod').value;
+
+            if (!teacherName) {
+                showToast('Mohon isi Nama Guru / ID Guru!', 'warning');
+                document.getElementById('teacherName').focus();
+                return;
+            }
+            if (!lockerClass) {
+                showToast('Mohon pilih Loker Kelas!', 'warning');
+                document.getElementById('lockerClass').focus();
+                return;
+            }
+            if (!hasSigned && actionType === 'Ambil') {
+                showToast('Mohon bubuhkan tanda tangan digital!', 'warning');
+                return;
+            }
+
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            const dateStr = now.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+            const timestampFormatted = `${dateStr}, ${timeStr}`;
+            const signatureData = hasSigned ? canvas.toDataURL() : '';
+
+            if (actionType === 'Ambil') {
+                // Check if this locker is already borrowed
+                const activeTx = transactions.find(t => t.lockerClass === lockerClass && (t.status === 'BORROWED' || t.status === 'LATE'));
+                if (activeTx) {
+                    showToast(`Loker ${lockerClass} sedang dipinjam oleh ${activeTx.teacherName}! Harap dikembalikan dulu.`, 'warning');
+                    return;
+                }
+
+                // Stage 2: Create ONE active transaction
+                const newTx = {
+                    id: 'TX-' + Date.now(),
+                    teacherId: teacherId,
+                    teacherName: teacherName,
+                    lockerClass: lockerClass,
+                    startPeriod: startPeriod,
+                    endPeriod: endPeriod,
+                    timeTake: timestampFormatted,
+                    rawTakeTime: now.toISOString(),
+                    timeReturn: '',
+                    rawReturnTime: '',
+                    duration: '',
+                    status: 'BORROWED',
+                    signature: signatureData
+                };
+                transactions.unshift(newTx);
+                syncTransactionToCloud(newTx);
+                showToast(`Kunci ${lockerClass} berhasil DICATAT DIPINJAM`, 'success');
+            } else {
+                // Stage 2: Update existing active transaction for this locker
+                const activeTx = transactions.find(t => t.lockerClass === lockerClass && (t.status === 'BORROWED' || t.status === 'LATE'));
+                if (!activeTx) {
+                    showToast(`Tidak ada catatan kunci ${lockerClass} yang sedang dipinjam!`, 'warning');
+                    return;
+                }
+
+                activeTx.timeReturn = timestampFormatted;
+                activeTx.rawReturnTime = now.toISOString();
+                activeTx.status = 'RETURNED';
+
+                // Calculate duration
+                const takeDate = new Date(activeTx.rawTakeTime);
+                const diffMs = now - takeDate;
+                const diffMins = Math.floor(diffMs / 60000);
+                const hrs = Math.floor(diffMins / 60);
+                const mins = diffMins % 60;
+                activeTx.duration = hrs > 0 ? `${hrs}j ${mins}m` : `${mins} menit`;
+
+                syncTransactionToCloud(activeTx);
+                showToast(`Kunci ${lockerClass} berhasil DIKEMBALIKAN`, 'success');
+            }
+
+            saveAndSyncTransactions();
+            document.getElementById('teacherId').value = '';
+            document.getElementById('teacherName').value = '';
+            document.getElementById('lockerClass').value = '';
+            clearCanvas();
+        }
+
+        function saveAndSyncTransactions() {
+            localStorage.setItem('schoolLockerTransactions_v2', JSON.stringify(transactions));
+            renderTransactions();
+            renderRealtimeDashboard();
+        }
+
+        // Stage 1: Render Real-time Locker Dashboard
+        function renderRealtimeDashboard() {
+            const container = document.getElementById('realtimeLockerDashboard');
+            if (!container) return;
+            container.innerHTML = '';
+
+            lockerDB.forEach(locker => {
+                const lockerNameFull = `Loker ${locker.name}`;
+                const activeTx = transactions.find(t => t.lockerClass === lockerNameFull && (t.status === 'BORROWED' || t.status === 'LATE'));
+                
+                let statusBg = 'bg-emerald-50 border-emerald-200 text-emerald-800';
+                let dotColor = 'bg-emerald-500';
+                let statusLabel = 'Tersedia';
+
+                if (activeTx) {
+                    if (activeTx.status === 'LATE') {
+                        statusBg = 'bg-rose-50 border-rose-200 text-rose-800 animate-pulse';
+                        dotColor = 'bg-rose-600';
+                        statusLabel = 'Terlambat';
+                    } else {
+                        statusBg = 'bg-amber-50 border-amber-200 text-amber-800';
+                        dotColor = 'bg-amber-500';
+                        statusLabel = 'Dipinjam';
+                    }
+                }
+
+                const card = document.createElement('div');
+                card.className = `p-3 rounded-xl border ${statusBg} flex flex-col justify-between cursor-pointer hover:shadow transition transform hover:-translate-y-0.5`;
+                card.onclick = () => openLockerDetail(lockerNameFull, activeTx);
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <span class="text-[10px] font-bold uppercase tracking-wider opacity-70">${escapeHtml(locker.category)}</span>
+                        <span class="w-2 h-2 rounded-full ${dotColor}"></span>
+                    </div>
+                    <div class="my-1">
+                        <p class="text-xs font-black">${escapeHtml(locker.name)}</p>
+                        <p class="text-[10px] truncate opacity-90">${activeTx ? escapeHtml(activeTx.teacherName) : 'Kosong'}</p>
+                    </div>
+                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-white/60 w-max">${statusLabel}</span>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function openLockerDetail(lockerName, activeTx) {
+            document.getElementById('detailLockerTitle').innerText = `Rincian ${lockerName}`;
+            const content = document.getElementById('detailLockerContent');
+            if (!activeTx) {
+                content.innerHTML = `
+                    <div class="p-4 text-center text-slate-500 space-y-2">
+                        <p class="text-sm font-bold text-emerald-600">🟢 Kunci Tersedia</p>
+                        <p>Loker saat ini tidak sedang dipinjam oleh guru manapun.</p>
+                        <button onclick="quickTakeLocker('${lockerName}')" class="mt-2 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-semibold">Ambil Kunci Ini</button>
+                    </div>
+                `;
+            } else {
+                content.innerHTML = `
+                    <div class="p-3 bg-slate-50 rounded-xl space-y-2">
+                        <p><strong>Nama Guru:</strong> <span class="text-indigo-600 font-bold">${escapeHtml(activeTx.teacherName)}</span> (ID: ${escapeHtml(activeTx.teacherId)})</p>
+                        <p><strong>Waktu Ambil:</strong> ${activeTx.timeTake}</p>
+                        <p><strong>Jam Pelajaran:</strong> Jam ${activeTx.startPeriod} - ${activeTx.endPeriod}</p>
+                        <p><strong>Status:</strong> <span class="px-2 py-0.5 rounded font-bold ${activeTx.status === 'LATE' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'}">${activeTx.status}</span></p>
+                        <div class="pt-2 flex gap-2">
+                            <button onclick="quickReturnLocker('${lockerName}')" class="flex-1 py-2 bg-emerald-600 text-white rounded-lg font-bold text-xs">Kembalikan Kunci</button>
+                        </div>
+                    </div>
+                `;
+            }
+            document.getElementById('lockerDetailModal').classList.remove('hidden');
+        }
+
+        function closeLockerDetailModal() {
+            document.getElementById('lockerDetailModal').classList.add('hidden');
+        }
+
+        function quickTakeLocker(lockerName) {
+            closeLockerDetailModal();
+            document.getElementById('lockerClass').value = lockerName;
+            document.getElementById('teacherName').focus();
+        }
+
+        function quickReturnLocker(lockerName) {
+            closeLockerDetailModal();
+            document.getElementById('lockerClass').value = lockerName;
+            recordAction('Kembali');
+        }
+
+        function renderTransactions() {
+            const tbody = document.getElementById('logTableBody');
+            const emptyState = document.getElementById('emptyState');
+            const searchInput = document.getElementById('searchInput');
+            const filterStatus = document.getElementById('filterStatus');
+
+            if (!tbody) return;
+
+            const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+            const statusFilter = filterStatus ? filterStatus.value : 'ALL';
+
+            tbody.innerHTML = '';
+
+            let filtered = transactions.filter(tx => {
+                const idMatch = (tx.teacherId || '').toLowerCase().includes(searchTerm);
+                const nameMatch = tx.teacherName.toLowerCase().includes(searchTerm);
+                const classMatch = tx.lockerClass.toLowerCase().includes(searchTerm);
+                const matchesSearch = idMatch || nameMatch || classMatch;
+                
+                let matchesStatus = true;
+                if (statusFilter === 'BORROWED') matchesStatus = (tx.status === 'BORROWED');
+                if (statusFilter === 'RETURNED') matchesStatus = (tx.status === 'RETURNED');
+                if (statusFilter === 'LATE') matchesStatus = (tx.status === 'LATE');
+
+                return matchesSearch && matchesStatus;
+            });
+
+            if (filtered.length === 0) {
+                if (emptyState) emptyState.classList.remove('hidden');
+            } else {
+                if (emptyState) emptyState.classList.add('hidden');
+
+                filtered.forEach(tx => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50/80 transition border-b border-slate-100";
+
+                    let statusBadge = '';
+                    if (tx.status === 'BORROWED') {
+                        statusBadge = `<span class="bg-amber-100 text-amber-800 border border-amber-300 px-2.5 py-0.5 rounded-full text-[11px] font-semibold flex items-center gap-1 w-max"><span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>Dipinjam</span>`;
+                    } else if (tx.status === 'LATE') {
+                        statusBadge = `<span class="bg-rose-100 text-rose-800 border border-rose-300 px-2.5 py-0.5 rounded-full text-[11px] font-semibold flex items-center gap-1 w-max"><span class="w-1.5 h-1.5 rounded-full bg-rose-600 animate-pulse"></span>Terlambat</span>`;
+                    } else {
+                        statusBadge = `<span class="bg-emerald-100 text-emerald-800 border border-emerald-300 px-2.5 py-0.5 rounded-full text-[11px] font-semibold flex items-center gap-1 w-max"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>${tx.duration || 'Selesai'}</span>`;
+                    }
+
+                    const quickAction = (tx.status === 'BORROWED' || tx.status === 'LATE')
+                        ? `<button onclick="quickReturnById('${tx.id}')" class="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 font-semibold rounded-lg text-[11px] transition flex items-center gap-1 ml-auto">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                Kembalikan
+                           </button>`
+                        : `<span class="text-slate-400 text-[11px] italic pr-2">Kembali: ${tx.timeReturn}</span>`;
+
+                    tr.innerHTML = `
+                        <td class="p-3 text-slate-500 whitespace-nowrap">${tx.timeTake}</td>
+                        <td class="p-3 font-mono font-semibold text-indigo-600">${escapeHtml(tx.teacherId || '-')}</td>
+                        <td class="p-3 font-semibold text-slate-800 cursor-pointer hover:text-indigo-600 hover:underline" onclick="openTeacherHistory('${escapeHtml(tx.teacherName)}')">${escapeHtml(tx.teacherName)}</td>
+                        <td class="p-3 font-bold text-indigo-900">${escapeHtml(tx.lockerClass)}</td>
+                        <td class="p-3">${statusBadge}</td>
+                        <td class="p-3 text-center">
+                            ${tx.signature ? `<img src="${tx.signature}" class="h-7 border bg-white rounded p-0.5 inline-block max-w-[80px]" alt="TTD">` : '-'}
+                        </td>
+                        <td class="p-3 text-right whitespace-nowrap">${quickAction}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            updateStats();
+        }
+
+        function quickReturnById(txId) {
+            const tx = transactions.find(t => t.id === txId);
+            if (tx) {
+                document.getElementById('lockerClass').value = tx.lockerClass;
+                recordAction('Kembali');
+            }
+        }
+
+        function filterLogs() { renderTransactions(); }
+
+        function updateStats() {
+            const total = transactions.length;
+            const borrowed = transactions.filter(t => t.status === 'BORROWED').length;
+            const late = transactions.filter(t => t.status === 'LATE').length;
+            const returned = transactions.filter(t => t.status === 'RETURNED').length;
+
+            const statTotal = document.getElementById('statTotal');
+            const statBorrowed = document.getElementById('statBorrowed');
+            const statLate = document.getElementById('statLate');
+
+            if (statTotal) statTotal.innerText = total;
+            if (statBorrowed) statBorrowed.innerText = borrowed + late;
+            if (statLate) statLate.innerText = late;
+        }
+
+        // ==========================================
+        // 5. STAGE 6: TEACHER HISTORY POPUP MODULE
+        // ==========================================
+        function openTeacherHistory(teacherName) {
+            document.getElementById('modalTeacherTitle').innerText = `Riwayat Peminjaman: ${teacherName}`;
+            const tbody = document.getElementById('teacherHistoryTableBody');
+            tbody.innerHTML = '';
+
+            const teacherTxs = transactions.filter(t => t.teacherName.toLowerCase() === teacherName.toLowerCase());
+
+            if (teacherTxs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400 italic">Belum ada riwayat peminjaman</td></tr>`;
+            } else {
+                teacherTxs.forEach(tx => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50";
+                    tr.innerHTML = `
+                        <td class="p-3 text-slate-600">${tx.timeTake}</td>
+                        <td class="p-3 font-bold text-indigo-900">${escapeHtml(tx.lockerClass)}</td>
+                        <td class="p-3">Jam ${tx.startPeriod} - ${tx.endPeriod}</td>
+                        <td class="p-3"><span class="px-2 py-0.5 rounded font-semibold text-[10px] ${tx.status === 'RETURNED' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">${tx.status}</span></td>
+                        <td class="p-3 text-slate-500">${tx.duration || '-'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            document.getElementById('teacherHistoryModal').classList.remove('hidden');
+        }
+
+        function closeTeacherHistoryModal() {
+            document.getElementById('teacherHistoryModal').classList.add('hidden');
+        }
+
+        // ==========================================
+        // 6. STAGE 4 & 5: STATISTICS & CHART.JS MODULE
+        // ==========================================
+        function renderAdminStats() {
+            const totalAll = transactions.length;
+            const borrowAll = transactions.filter(t => t.status === 'BORROWED').length;
+            const lateAll = transactions.filter(t => t.status === 'LATE').length;
+            const returnAll = transactions.filter(t => t.status === 'RETURNED').length;
+
+            document.getElementById('statTotalAll').innerText = totalAll;
+            document.getElementById('statBorrowAll').innerText = borrowAll + lateAll;
+            document.getElementById('statReturnAll').innerText = returnAll;
+            document.getElementById('statLateAll').innerText = lateAll;
+
+            // Frequency calculation
+            const teacherFreq = {};
+            const lockerFreq = {};
+            transactions.forEach(t => {
+                teacherFreq[t.teacherName] = (teacherFreq[t.teacherName] || 0) + 1;
+                lockerFreq[t.lockerClass] = (lockerFreq[t.lockerClass] || 0) + 1;
+            });
+
+            // Top Teachers
+            const sortedTeachers = Object.entries(teacherFreq).sort((a,b) => b[1] - a[1]).slice(0, 5);
+            const tContainer = document.getElementById('topTeachersList');
+            tContainer.innerHTML = '';
+            if (sortedTeachers.length === 0) {
+                tContainer.innerHTML = `<p class="text-xs text-slate-400 italic">Belum ada data</p>`;
+            } else {
+                sortedTeachers.forEach(([name, count], idx) => {
+                    tContainer.innerHTML += `
+                        <div class="flex justify-between items-center p-2.5 bg-slate-50 rounded-xl text-xs">
+                            <span class="font-bold text-slate-800">${idx+1}. ${escapeHtml(name)}</span>
+                            <span class="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full font-semibold">${count} transaksi</span>
+                        </div>
+                    `;
+                });
+            }
+
+            // Top Lockers
+            const sortedLockers = Object.entries(lockerFreq).sort((a,b) => b[1] - a[1]).slice(0, 5);
+            const lContainer = document.getElementById('topLockersList');
+            lContainer.innerHTML = '';
+            if (sortedLockers.length === 0) {
+                lContainer.innerHTML = `<p class="text-xs text-slate-400 italic">Belum ada data</p>`;
+            } else {
+                sortedLockers.forEach(([name, count], idx) => {
+                    lContainer.innerHTML += `
+                        <div class="flex justify-between items-center p-2.5 bg-slate-50 rounded-xl text-xs">
+                            <span class="font-bold text-slate-800">${idx+1}. ${escapeHtml(name)}</span>
+                            <span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-semibold">${count} kali</span>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        function renderCharts() {
+            // Daily transactions chart
+            const dailyCounts = {};
+            transactions.forEach(t => {
+                const dateKey = t.timeTake.split(',')[0] || 'Hari ini';
+                dailyCounts[dateKey] = (dailyCounts[dateKey] || 0) + 1;
+            });
+
+            const daysLabels = Object.keys(dailyCounts).slice(-7);
+            const daysData = daysLabels.map(d => dailyCounts[d]);
+
+            if (chartInstances.daily) chartInstances.daily.destroy();
+            const ctx1 = document.getElementById('chartDailyTransactions').getContext('2d');
+            chartInstances.daily = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: daysLabels.length ? daysLabels : ['Hari Ini'],
+                    datasets: [{
+                        label: 'Jumlah Transaksi Harian',
+                        data: daysData.length ? daysData : [0],
+                        backgroundColor: '#6366f1',
+                        borderRadius: 6
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            // Top lockers chart
+            const lockerCounts = {};
+            transactions.forEach(t => {
+                lockerCounts[t.lockerClass] = (lockerCounts[t.lockerClass] || 0) + 1;
+            });
+            const lockerLabels = Object.keys(lockerCounts).slice(0, 5);
+            const lockerData = lockerLabels.map(l => lockerCounts[l]);
+
+            if (chartInstances.lockers) chartInstances.lockers.destroy();
+            const ctx2 = document.getElementById('chartTopLockers').getContext('2d');
+            chartInstances.lockers = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: lockerLabels.length ? lockerLabels : ['Belum ada data'],
+                    datasets: [{
+                        data: lockerData.length ? lockerData : [1],
+                        backgroundColor: ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        // ==========================================
+        // 7. STAGE 7: BACKUP & RESTORE MODULE
+        // ==========================================
+        function exportJSONBackup() {
+            const backupObj = {
+                transactions: transactions,
+                teacherDB: teacherDB,
+                lockerDB: lockerDB,
+                adminPin: adminPin,
+                exportDate: new Date().toISOString()
+            };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupObj, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `SILOKER_Backup_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            showToast('Backup JSON berhasil diunduh!', 'success');
+        }
+
+        function importJSONBackup(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (parsed.transactions) transactions = parsed.transactions;
+                    if (parsed.teacherDB) teacherDB = parsed.teacherDB;
+                    if (parsed.lockerDB) lockerDB = parsed.lockerDB;
+                    if (parsed.adminPin) {
+                        adminPin = parsed.adminPin;
+                        localStorage.setItem('schoolAdminPin_v1', adminPin);
+                    }
+                    saveAndSyncTransactions();
+                    saveMasterState();
+                    showToast('Restore Data JSON Berhasil!', 'success');
+                } catch (err) {
+                    showToast('Format file JSON tidak valid!', 'warning');
+                } finally {
+                    event.target.value = '';
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function exportExcelBackup() {
+            exportToCSV();
+        }
+
+        function importExcelBackup(event) {
+            handleExcelImport(event);
+        }
+
+        // ==========================================
+        // 8. STAGE 9: SECURITY & ADMIN MODULE
+        // ==========================================
+        function requestAdminAccess() {
+            if (isAdminAuthenticated) {
+                switchView('admin');
+                return;
+            }
+            document.getElementById('adminPinInput').value = '';
+            document.getElementById('adminPinModal').classList.remove('hidden');
+            document.getElementById('adminPinInput').focus();
+        }
+
+        function closeAdminPinModal() {
+            document.getElementById('adminPinModal').classList.add('hidden');
+        }
+
+        function verifyAdminPin() {
+            const inputPin = document.getElementById('adminPinInput').value;
+            // Compatible with plain text or hashed PIN
+            const isMatch = (inputPin === adminPin) || (hashPin(inputPin) === adminPin);
+            if (isMatch) {
+                isAdminAuthenticated = true;
+                closeAdminPinModal();
+                showToast('Akses Admin Berhasil!', 'success');
+                switchView('admin');
+                resetAutoLogoutTimer();
+            } else {
+                showToast('PIN Admin Salah!', 'warning');
+                document.getElementById('adminPinInput').value = '';
+                document.getElementById('adminPinInput').focus();
+            }
+        }
+
+        function adminLogout() {
+            isAdminAuthenticated = false;
+            if (autoLogoutTimer) clearTimeout(autoLogoutTimer);
+            switchView('receptionist');
+            showToast('Berhasil Logout dari Panel Admin', 'info');
+        }
+
+        function resetAutoLogoutTimer() {
+            if (autoLogoutTimer) clearTimeout(autoLogoutTimer);
+            // Auto logout after 15 minutes of inactivity
+            autoLogoutTimer = setTimeout(() => {
+                if (isAdminAuthenticated) {
+                    adminLogout();
+                    showToast('Sesi Admin Berakhir karena Inaktif (Auto Logout)', 'warning');
+                }
+            }, 15 * 60 * 1000);
+        }
+
+        window.addEventListener('mousemove', () => { if (isAdminAuthenticated) resetAutoLogoutTimer(); });
+        window.addEventListener('keypress', () => { if (isAdminAuthenticated) resetAutoLogoutTimer(); });
+
+        function changeAdminPin(e) {
+            e.preventDefault();
+            const oldPin = document.getElementById('oldPinInput').value;
+            const newPin = document.getElementById('newPinInput').value;
+            const confirmPin = document.getElementById('confirmPinInput').value;
+
+            const isOldMatch = (oldPin === adminPin) || (hashPin(oldPin) === adminPin);
+            if (!isOldMatch) {
+                showToast('PIN Lama Salah!', 'warning');
+                return;
+            }
+            if (newPin.length < 4) {
+                showToast('PIN Baru minimal 4 karakter!', 'warning');
+                return;
+            }
+            if (newPin !== confirmPin) {
+                showToast('Konfirmasi PIN baru tidak cocok!', 'warning');
+                return;
+            }
+
+            adminPin = hashPin(newPin); // Store hashed PIN securely
+            localStorage.setItem('schoolAdminPin_v1', adminPin);
+            showToast('PIN Admin berhasil diperbarui!', 'success');
+            e.target.reset();
+        }
+
+        // ==========================================
+        // 9. VIEW SWITCHING & SUBTABS
+        // ==========================================
+        function switchView(mode) {
+            const viewReceptionist = document.getElementById('viewReceptionist');
+            const viewAdmin = document.getElementById('viewAdmin');
+            const navReceptionistBtn = document.getElementById('navReceptionistBtn');
+            const navAdminBtn = document.getElementById('navAdminBtn');
+            const badge = document.getElementById('currentModeBadge');
+
+            if (mode === 'admin') {
+                if (!isAdminAuthenticated) {
+                    requestAdminAccess();
+                    return;
+                }
+                viewReceptionist.classList.add('hidden');
+                viewAdmin.classList.remove('hidden');
+                navReceptionistBtn.className = "px-3 py-1.5 rounded-lg text-indigo-200 hover:text-white hover:bg-indigo-800/60 transition";
+                navAdminBtn.className = "px-3 py-1.5 rounded-lg text-white font-semibold bg-indigo-600 transition shadow";
+                badge.innerText = "Admin Panel";
+                badge.className = "text-xs font-semibold px-2 py-0.5 bg-amber-500 text-amber-950 rounded-full";
+                
+                renderAdminTeachers();
+                renderAdminLockers();
+                renderAdminStats();
+                renderCharts();
+                generateReport();
+            } else {
+                viewAdmin.classList.add('hidden');
+                viewReceptionist.classList.remove('hidden');
+                navAdminBtn.className = "px-3 py-1.5 rounded-lg text-indigo-200 hover:text-white hover:bg-indigo-800/60 transition";
+                navReceptionistBtn.className = "px-3 py-1.5 rounded-lg text-white font-semibold bg-indigo-600 transition shadow";
+                badge.innerText = "Resepsionis";
+                badge.className = "text-xs font-semibold px-2 py-0.5 bg-indigo-700 text-indigo-200 rounded-full";
+                setTimeout(resizeCanvas, 50);
+            }
+        }
+
+        function switchAdminSubTab(subTab) {
+            const tabs = ['teachers', 'lockers', 'stats', 'charts', 'reports', 'backup', 'security'];
+            tabs.forEach(t => {
+                const el = document.getElementById('adminTab' + t.charAt(0).toUpperCase() + t.slice(1));
+                const btn = document.getElementById('adminTab' + t.charAt(0).toUpperCase() + t.slice(1) + 'Btn');
+                if (el) el.classList.add('hidden');
+                if (btn) btn.className = "px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-indigo-700 transition";
+            });
+
+            const activeEl = document.getElementById('adminTab' + subTab.charAt(0).toUpperCase() + subTab.slice(1));
+            const activeBtn = document.getElementById('adminTab' + subTab.charAt(0).toUpperCase() + subTab.slice(1) + 'Btn');
+            if (activeEl) activeEl.classList.remove('hidden');
+            if (activeBtn) activeBtn.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold text-indigo-700 bg-white shadow-sm transition";
+
+            if (subTab === 'stats') renderAdminStats();
+            if (subTab === 'charts') renderCharts();
+            if (subTab === 'reports') generateReport();
+        }
+
+        // ==========================================
+        // 10. EXISTING MASTER DATA & REPORTS MODULES
+        // ==========================================
+        function syncMasterDataToSelects() {
+            const idDatalist = document.getElementById('teacherIdSuggestions');
+            const nameDatalist = document.getElementById('teacherNameSuggestions');
+            if (idDatalist && nameDatalist) {
+                idDatalist.innerHTML = '';
+                nameDatalist.innerHTML = '';
+                teacherDB.forEach(t => {
+                    const optId = document.createElement('option');
+                    optId.value = t.id;
+                    optId.innerText = `${t.id} - ${t.name}`;
+                    idDatalist.appendChild(optId);
+
+                    const optName = document.createElement('option');
+                    optName.value = t.name;
+                    optName.innerText = `${t.id} - ${t.name}`;
+                    nameDatalist.appendChild(optName);
+                });
+            }
+
+            const lockerSelect = document.getElementById('lockerClass');
+            if (lockerSelect) {
+                lockerSelect.innerHTML = '<option value="">-- Pilih Loker Kelas --</option>';
+                const categories = [...new Set(lockerDB.map(l => l.category))];
+                categories.forEach(cat => {
+                    const group = document.createElement('optgroup');
+                    group.label = cat;
+                    lockerDB.filter(l => l.category === cat).forEach(l => {
+                        const opt = document.createElement('option');
+                        opt.value = `Loker ${l.name}`;
+                        opt.innerText = `Loker ${l.name}`;
+                        group.appendChild(opt);
+                    });
+                    lockerSelect.appendChild(group);
+                });
+            }
+        }
+
+        function onTeacherIdChange() {
+            const val = document.getElementById('teacherId').value.trim();
+            const found = teacherDB.find(t => t.id === val);
+            if (found) { document.getElementById('teacherName').value = found.name; }
+        }
+
+        function onTeacherNameChange() {
+            const val = document.getElementById('teacherName').value.trim();
+            const found = teacherDB.find(t => t.name.toLowerCase() === val.toLowerCase());
+            if (found) { document.getElementById('teacherId').value = found.id; }
+        }
+
+        function saveMasterState() {
+            localStorage.setItem('schoolTeacherDB_v1', JSON.stringify(teacherDB));
+            localStorage.setItem('schoolLockerDB_v1', JSON.stringify(lockerDB));
+            syncMasterDataToSelects();
+            renderAdminTeachers();
+            renderAdminLockers();
+        }
+
+        function renderAdminTeachers() {
+            const tbody = document.getElementById('adminTeacherTableBody');
+            const searchInput = document.getElementById('searchTeacherAdmin');
+            if (!tbody) return;
+            const search = searchInput ? searchInput.value.toLowerCase() : '';
+            tbody.innerHTML = '';
+            let filtered = teacherDB.filter(t => t.id.toLowerCase().includes(search) || t.name.toLowerCase().includes(search));
+            const teacherCount = document.getElementById('teacherCount');
+            if (teacherCount) teacherCount.innerText = filtered.length;
+
+            filtered.forEach((t, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 border-b border-slate-100";
+                tr.innerHTML = `
+                    <td class="p-3 text-slate-400 font-mono">${idx + 1}</td>
+                    <td class="p-3 font-mono font-bold text-indigo-600">${escapeHtml(t.id)}</td>
+                    <td class="p-3 font-semibold text-slate-800">${escapeHtml(t.name)}</td>
+                    <td class="p-3 text-right space-x-1">
+                        <button onclick="editTeacherMaster('${escapeHtml(t.id)}')" class="p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg transition" title="Edit">✏️</button>
+                        <button onclick="deleteTeacherMaster('${escapeHtml(t.id)}')" class="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg transition" title="Hapus">🗑️</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function saveTeacherMaster(e) {
+            e.preventDefault();
+            const id = document.getElementById('adminTeacherId').value.trim();
+            const name = document.getElementById('adminTeacherName').value.trim();
+            const editIdx = parseInt(document.getElementById('editTeacherIndex').value);
+
+            if (!id || !name) { showToast('Harap isi ID dan Nama Guru!', 'warning'); return; }
+
+            if (editIdx >= 0) {
+                teacherDB[editIdx] = { id, name };
+                showToast('Data Guru berhasil diperbarui!', 'success');
+            } else {
+                if (teacherDB.some(t => t.id === id)) { showToast('ID / NIP Guru sudah terdaftar!', 'warning'); return; }
+                teacherDB.push({ id, name });
+                showToast('Guru baru berhasil ditambahkan!', 'success');
+            }
+            saveMasterState();
+            resetTeacherForm();
+        }
+
+        function editTeacherMaster(id) {
+            const idx = teacherDB.findIndex(t => t.id === id);
+            if (idx >= 0) {
+                document.getElementById('adminTeacherId').value = teacherDB[idx].id;
+                document.getElementById('adminTeacherName').value = teacherDB[idx].name;
+                document.getElementById('editTeacherIndex').value = idx;
+                document.getElementById('teacherFormTitle').innerText = 'Edit Data Guru';
+                document.getElementById('teacherFormResetBtn').classList.remove('hidden');
+            }
+        }
+
+        function deleteTeacherMaster(id) {
+            teacherDB = teacherDB.filter(t => t.id !== id);
+            saveMasterState();
+            showToast('Guru dihapus dari database master', 'info');
+        }
+
+        function resetTeacherForm() {
+            const form = document.getElementById('teacherMasterForm');
+            if (form) form.reset();
+            document.getElementById('editTeacherIndex').value = '-1';
+            document.getElementById('teacherFormTitle').innerText = 'Tambah Guru Baru';
+            document.getElementById('teacherFormResetBtn').classList.add('hidden');
+        }
+
+        function handleExcelImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+                    if (!jsonData || jsonData.length === 0) { showToast('File Excel kosong!', 'warning'); return; }
+
+                    let addedCount = 0; let updatedCount = 0;
+                    jsonData.forEach(row => {
+                        let idVal = ""; let nameVal = "";
+                        Object.keys(row).forEach(key => {
+                            const cleanKey = key.toString().trim().toLowerCase();
+                            if (cleanKey.includes('id') || cleanKey.includes('nip') || cleanKey.includes('no')) { if (!idVal) idVal = row[key].toString().trim(); }
+                            if (cleanKey.includes('nama') || cleanKey.includes('name') || cleanKey.includes('guru')) { if (!nameVal) nameVal = row[key].toString().trim(); }
+                        });
+                        const keys = Object.keys(row);
+                        if (!idVal && keys.length > 0) idVal = row[keys[0]].toString().trim();
+                        if (!nameVal && keys.length > 1) nameVal = row[keys[1]].toString().trim();
+
+                        if (idVal && nameVal) {
+                            const existingIdx = teacherDB.findIndex(t => t.id === idVal);
+                            if (existingIdx >= 0) { teacherDB[existingIdx].name = nameVal; updatedCount++; }
+                            else { teacherDB.push({ id: idVal, name: nameVal }); addedCount++; }
+                        }
+                    });
+                    saveMasterState();
+                    showToast(`Impor Berhasil! ${addedCount} baru, ${updatedCount} diperbarui.`, 'success');
+                } catch (err) {
+                    showToast('Gagal membaca file Excel.', 'warning');
+                } finally { event.target.value = ''; }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function downloadTeacherTemplate() {
+            const templateData = [{ "ID_NIP": "106", "Nama_Guru": "Drs. Tri Mulyono, M.Pd" }];
+            const ws = XLSX.utils.json_to_sheet(templateData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Master_Guru");
+            XLSX.writeFile(wb, "Template_Import_Guru.xlsx");
+            showToast('Template diunduh!', 'info');
+        }
+
+        function renderAdminLockers() {
+            const grid = document.getElementById('adminLockerGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            const lockerCount = document.getElementById('lockerCount');
+            if (lockerCount) lockerCount.innerText = lockerDB.length;
+
+            lockerDB.forEach((locker, idx) => {
+                const card = document.createElement('div');
+                card.className = "p-3 bg-slate-50 border border-slate-200 rounded-xl flex justify-between items-center shadow-sm";
+                card.innerHTML = `
+                    <div>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-600 block">${escapeHtml(locker.category)}</span>
+                        <span class="text-xs font-bold text-slate-800">Loker ${escapeHtml(locker.name)}</span>
+                    </div>
+                    <button onclick="deleteLockerMaster(${idx})" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition" title="Hapus">🗑️</button>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function saveLockerMaster(e) {
+            e.preventDefault();
+            const category = document.getElementById('adminLockerCategory').value;
+            const name = document.getElementById('adminLockerName').value.trim();
+            if (!name) { showToast('Harap isi Nama Loker!', 'warning'); return; }
+            if (lockerDB.some(l => l.name.toLowerCase() === name.toLowerCase())) { showToast('Loker sudah ada!', 'warning'); return; }
+            lockerDB.push({ category, name });
+            saveMasterState();
+            document.getElementById('adminLockerName').value = '';
+            showToast('Loker berhasil ditambahkan!', 'success');
+        }
+
+        function deleteLockerMaster(idx) {
+            lockerDB.splice(idx, 1);
+            saveMasterState();
+            showToast('Loker dihapus', 'info');
+        }
+
+        function resetLockersToDefault() {
+            lockerDB = JSON.parse(JSON.stringify(DEFAULT_LOCKERS));
+            saveMasterState();
+            showToast('Loker dikembalikan ke default', 'info');
+        }
+
+        function generateReport() {
+            const periodSelect = document.getElementById('reportPeriodFilter');
+            const tbody = document.getElementById('reportTableBody');
+            if (!tbody) return;
+            const period = periodSelect ? periodSelect.value : 'ALL';
+            tbody.innerHTML = '';
+
+            const now = new Date();
+            const todayStr = now.toISOString().slice(0, 10);
+
+            let filtered = transactions.filter(tx => {
+                if (!tx.rawTakeTime) return true;
+                const txDate = new Date(tx.rawTakeTime);
+                const txDateStr = txDate.toISOString().slice(0, 10);
+
+                if (period === 'TODAY') return txDateStr === todayStr;
+                if (period === 'WEEK') return (now - txDate) / (1000 * 60 * 60 * 24) <= 7;
+                if (period === '30_DAYS') return (now - txDate) / (1000 * 60 * 60 * 24) <= 30;
+                if (period === 'THIS_MONTH') return txDate.getFullYear() === now.getFullYear() && txDate.getMonth() === now.getMonth();
+                if (period === 'LAST_MONTH') {
+                    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    return txDate.getFullYear() === lastMonth.getFullYear() && txDate.getMonth() === lastMonth.getMonth();
+                }
+                return true;
+            });
+
+            document.getElementById('reportTotalCount').innerText = filtered.length;
+
+            let lockerFreq = {}; let teacherFreq = {};
+            filtered.forEach(tx => {
+                lockerFreq[tx.lockerClass] = (lockerFreq[tx.lockerClass] || 0) + 1;
+                teacherFreq[tx.teacherName] = (teacherFreq[tx.teacherName] || 0) + 1;
+            });
+
+            let topLocker = '-'; let maxL = 0;
+            for (const [l, c] of Object.entries(lockerFreq)) { if (c > maxL) { maxL = c; topLocker = `${l} (${c}x)`; } }
+            let topTeacher = '-'; let maxT = 0;
+            for (const [t, c] of Object.entries(teacherFreq)) { if (c > maxT) { maxT = c; topTeacher = `${t} (${c}x)`; } }
+
+            document.getElementById('reportTopLocker').innerText = topLocker;
+            document.getElementById('reportTopTeacher').innerText = topTeacher;
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-400 italic">Tidak ada transaksi pada periode ini</td></tr>`;
+            } else {
+                filtered.forEach(tx => {
+                    const tr = document.createElement('tr');
+                    tr.className = "border-b border-slate-100 hover:bg-slate-50";
+                    tr.innerHTML = `
+                        <td class="p-3 text-slate-500">${tx.timeTake}</td>
+                        <td class="p-3 font-mono text-indigo-600 font-semibold">${escapeHtml(tx.teacherId || '-')}</td>
+                        <td class="p-3 font-semibold text-slate-800">${escapeHtml(tx.teacherName)}</td>
+                        <td class="p-3 font-bold text-slate-700">${escapeHtml(tx.lockerClass)}</td>
+                        <td class="p-3 text-slate-600">${tx.duration || '-'}</td>
+                        <td class="p-3"><span class="px-2 py-0.5 rounded font-semibold text-[10px] ${tx.status === 'RETURNED' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">${tx.status}</span></td>
+                        <td class="p-3 text-center">${tx.signature ? `<img src="${tx.signature}" class="h-6 border bg-white rounded inline-block max-w-[70px]">` : '-'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        }
+
+        function triggerPrintReport() {
+            generateReport();
+            openPrintPreviewModal();
+        }
+
+        function openPrintPreviewModal() {
+            const paper = document.getElementById('printPreviewPaper');
+            const periodSelect = document.getElementById('reportPeriodFilter');
+            const periodText = periodSelect ? periodSelect.options[periodSelect.selectedIndex].text : 'Semua Waktu';
+            const nowLongStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            
+            let tableRowsHtml = '';
+            const filteredRows = document.querySelectorAll('#reportTableBody tr');
+            filteredRows.forEach(row => { tableRowsHtml += `<tr class="border-b border-slate-300 text-xs">${row.innerHTML}</tr>`; });
+
+            paper.innerHTML = `
+                <div class="border-b-4 border-double border-slate-900 pb-2 text-center mb-4">
+                    <p class="text-xs uppercase tracking-wider font-semibold text-slate-800">PEMERINTAH PROVINSI JAWA TENGAH</p>
+                    <p class="text-sm uppercase tracking-wider font-bold text-slate-900">DINAS PENDIDIKAN</p>
+                    <h1 class="text-xl sm:text-2xl font-black uppercase tracking-wide text-slate-900 my-0.5">SMA NEGERI 2 BREBES</h1>
+                    <p class="text-[10px] sm:text-[11px] leading-tight text-slate-800">
+                        Jalan Jenderal Ahmad Yani 77, Brebes, Jawa Tengah, Kode Pos 52212 Telepon 0283-671060, Faksimile 0283-671060
+                    </p>
+                    <p class="text-[10px] sm:text-[11px] leading-tight text-slate-800 font-medium">
+                        Laman https://sman2-brebes.sch.id, Pos-el smadabes@gmail.com
+                    </p>
+                </div>
+                <div class="text-center mb-5">
+                    <h2 class="text-sm font-bold uppercase underline tracking-wide text-slate-900">LAPORAN REKAPITULASI PEMINJAMAN KUNCI LOKER KELAS</h2>
+                    <p class="text-xs text-slate-600 mt-1">Periode Laporan: <strong>${periodText}</strong> | Dicetak pada: ${nowLongStr}</p>
+                </div>
+                <table class="w-full text-left text-xs border-collapse border border-slate-400 mb-6">
+                    <thead class="bg-slate-100 uppercase font-bold text-slate-800 border-b border-slate-400">
+                        <tr>
+                            <th class="p-2 border border-slate-400">Waktu Ambil</th>
+                            <th class="p-2 border border-slate-400">ID Guru</th>
+                            <th class="p-2 border border-slate-400">Nama Guru</th>
+                            <th class="p-2 border border-slate-400">Loker Kelas</th>
+                            <th class="p-2 border border-slate-400">Durasi</th>
+                            <th class="p-2 border border-slate-400">Status</th>
+                            <th class="p-2 border border-slate-400 text-center">TTD</th>
+                        </tr>
+                    </thead>
+                    <tbody>${tableRowsHtml}</tbody>
+                </table>
+                <div class="grid grid-cols-2 text-xs pt-4 border-t border-slate-300">
+                    <div>
+                        <p class="mb-1">Mengetahui,</p>
+                        <p class="font-bold text-slate-900">Petugas Resepsionis / Piket</p>
+                        <div class="h-16"></div>
+                        <p class="font-bold underline text-slate-900">( ............................................ )</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="mb-1">Brebes, ${nowLongStr}</p>
+                        <p class="font-bold text-slate-900">Kepala SMA Negeri 2 Brebes</p>
+                        <div class="h-16"></div>
+                        <p class="font-bold underline text-slate-900">( Drs. M. Ali Syafa'at, M.Pd )</p>
+                        <p class="text-slate-600">NIP. 19680512 199403 1 008</p>
+                    </div>
+                </div>
+            `;
+            document.getElementById('printPreviewModal').classList.remove('hidden');
+        }
+
+        function closePrintPreviewModal() { document.getElementById('printPreviewModal').classList.add('hidden'); }
+        function executePrint() { window.print(); }
+
+        function exportToCSV() {
+            if (transactions.length === 0) { showToast('Tidak ada data!', 'warning'); return; }
+            let csvContent = "data:text/csv;charset=utf-8,Waktu Ambil,ID Guru,Nama Guru,Loker Kelas,Jam Ke,Status,Durasi\n";
+            transactions.forEach(tx => {
+                csvContent += `"${tx.timeTake}","${tx.teacherId || '-'}","${tx.teacherName}","${tx.lockerClass}","Jam ${tx.startPeriod}-${tx.endPeriod}","${tx.status}","${tx.duration || '-'}"\n`;
+            });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Rekap_Loker_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            showToast('CSV berhasil diunduh!', 'success');
+        }
+
+        function promptResetAll() { document.getElementById('customModal').classList.remove('hidden'); }
+        function closeModal() { document.getElementById('customModal').classList.add('hidden'); }
+        function confirmResetAll() {
+            transactions = [];
+            saveAndSyncTransactions();
+            closeModal();
+            showToast('Seluruh transaksi direset', 'info');
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+            const toast = document.createElement('div');
+            let bg = 'bg-slate-800 text-white';
+            if (type === 'success') bg = 'bg-emerald-600 text-white';
+            if (type === 'warning') bg = 'bg-amber-600 text-white';
+            toast.className = `pointer-events-auto flex items-center gap-2 px-4 py-3 rounded-xl shadow-xl text-xs font-semibold ${bg} transition transform duration-200 translate-y-2 opacity-0`;
+            toast.innerText = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.remove('translate-y-2', 'opacity-0'), 10);
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 200);
+            }, 3500);
+        }
+
+        function updateClock() {
+            const now = new Date();
+            const clock = document.getElementById('liveClock');
+            if (clock) clock.innerText = now.toLocaleTimeString('id-ID') + ' WIB';
+        }
+    </script>
+</body>
+</html>
