@@ -22,14 +22,13 @@
             .no-print { display: none !important; }
             .print-only { display: block !important; }
             body { background: white !important; color: black !important; font-size: 10pt; }
-            #viewReceptionist, #toastContainer, #adminPinModal, #customModal, #printPreviewModal, #teacherHistoryModal, #pinChangeModal { display: none !important; }
+            #viewReceptionist, #toastContainer, #adminPinModal, #customModal, #printPreviewModal, #teacherHistoryModal, #gasSyncModal, #lockerDetailModal { display: none !important; }
             #viewAdmin { display: block !important; padding: 0 !important; margin: 0 !important; width: 100% !important; max-width: 100% !important; }
             #adminTabTeachers, #adminTabLockers, #adminTabStats, #adminTabCharts, #adminTabBackup, #adminTabSecurity { display: none !important; }
             #adminTabReports { display: block !important; }
             .shadow-sm, .shadow-md, .shadow-lg, .shadow-2xl { box-shadow: none !important; }
             .bg-white, .bg-slate-50, .bg-indigo-50, .bg-amber-50, .bg-emerald-50 { background: transparent !important; }
             .border, .border-slate-200\/80 { border-color: #94a3b8 !important; }
-            
             .overflow-x-auto, .overflow-y-auto, .max-h-\[450px\], .max-h-\[560px\], .max-h-\[400px\] { 
                 max-height: none !important; 
                 overflow: visible !important; 
@@ -73,6 +72,11 @@
                             ⚙️ Admin Panel
                         </button>
                     </div>
+
+                    <!-- TOMBOL QUICK SYNC GOOGLE SHEETS -->
+                    <button onclick="openGasSyncModal()" class="px-3 py-1.5 bg-indigo-800 hover:bg-indigo-700 text-amber-300 font-semibold rounded-xl border border-indigo-600/60 transition flex items-center gap-1.5 shadow-sm" title="Pengaturan Sinkronisasi Google Sheets">
+                        <span>🔗 Google Sheets</span>
+                    </button>
 
                     <!-- Sync Status Indicator -->
                     <span id="syncIndicator" class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-indigo-950/70 border border-indigo-700/50 text-indigo-200" title="Status Google Apps Script Sync">
@@ -415,7 +419,7 @@
                 </div>
             </div>
 
-            <!-- ADMIN SECTION 3: STATISTIK PENGGUNAAN (STAGE 4) -->
+            <!-- ADMIN SECTION 3: STATISTIK PENGGUNAAN -->
             <div id="adminTabStats" class="hidden space-y-6">
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
@@ -460,7 +464,7 @@
                 </div>
             </div>
 
-            <!-- ADMIN SECTION 4: GRAFIK STATISTIK (STAGE 5) -->
+            <!-- ADMIN SECTION 4: GRAFIK STATISTIK -->
             <div id="adminTabCharts" class="hidden space-y-6">
                 <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
                     <div class="flex justify-between items-center">
@@ -547,7 +551,7 @@
                 </div>
             </div>
 
-            <!-- ADMIN SECTION 6: BACKUP & RESTORE (STAGE 7 & 8) -->
+            <!-- ADMIN SECTION 6: BACKUP & RESTORE -->
             <div id="adminTabBackup" class="hidden space-y-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- JSON Backup & Restore -->
@@ -581,7 +585,7 @@
                     </div>
                 </div>
 
-                <!-- Google Apps Script Cloud Sync Settings (Stage 8) -->
+                <!-- Google Apps Script Cloud Sync Settings -->
                 <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
                     <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2"><span>☁️</span> Sinkronisasi Google Apps Script Spreadsheet</h3>
                     <p class="text-xs text-slate-500">Hubungkan URL Web App Google Apps Script Anda agar setiap transaksi otomatis dikirim ke Google Sheets (dengan antrean offline otomatis).</p>
@@ -603,7 +607,7 @@
                 </div>
             </div>
 
-            <!-- ADMIN SECTION 7: KEAMANAN (STAGE 9) -->
+            <!-- ADMIN SECTION 7: KEAMANAN -->
             <div id="adminTabSecurity" class="hidden space-y-6">
                 <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4 max-w-md">
                     <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2"><span>🔒</span> Pengaturan Keamanan PIN Admin</h3>
@@ -644,6 +648,42 @@
     <!-- TOAST NOTIFICATION CONTAINER -->
     <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none no-print"></div>
 
+    <!-- GOOGLE SHEETS QUICK SYNC MODAL -->
+    <div id="gasSyncModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-100">
+            <div class="flex justify-between items-center border-b pb-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">🔗</span>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-base">Sinkronisasi Google Sheets</h3>
+                        <p class="text-[11px] text-slate-500">Atur tautan backend Google Apps Script</p>
+                    </div>
+                </div>
+                <button onclick="closeGasSyncModal()" class="text-slate-400 hover:text-slate-600 font-bold text-sm">✕</button>
+            </div>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">URL Web App Google Apps Script</label>
+                    <input type="text" id="quickGasUrlInput" placeholder="https://script.google.com/macros/s/.../exec" 
+                           class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div id="quickSyncStatus" class="p-2.5 bg-slate-100 rounded-xl text-xs font-semibold text-slate-600 flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-slate-400" id="quickSyncDot"></span>
+                    <span id="quickSyncText">Status: Belum Terhubung</span>
+                </div>
+                <div class="flex gap-2 pt-1">
+                    <button onclick="testGasConnection()" class="w-1/2 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition">
+                        🧪 Tes Koneksi
+                    </button>
+                    <button onclick="saveQuickGasUrl()" class="w-1/2 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition shadow">
+                        💾 Simpan URL
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ADMIN AUTH PIN MODAL -->
     <div id="adminPinModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl max-w-xs w-full p-6 shadow-2xl space-y-4 border border-slate-100 text-center">
@@ -663,7 +703,7 @@
         </div>
     </div>
 
-    <!-- STAGE 6: TEACHER HISTORY POPUP MODAL -->
+    <!-- TEACHER HISTORY POPUP MODAL -->
     <div id="teacherHistoryModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
         <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-slate-100">
             <div class="bg-indigo-900 text-white px-5 py-3.5 flex justify-between items-center shrink-0">
@@ -694,7 +734,7 @@
         </div>
     </div>
 
-    <!-- STAGE 1: LOCKER DETAIL ACTIVE MODAL -->
+    <!-- LOCKER DETAIL ACTIVE MODAL -->
     <div id="lockerDetailModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
         <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-100">
             <div class="flex justify-between items-center border-b pb-3">
@@ -751,11 +791,8 @@
         </div>
     </div>
 
-    <!-- MAIN JAVASCRIPT REFACTOR MODULES (STAGE 10) -->
+    <!-- MAIN JAVASCRIPT REFACTOR MODULES -->
     <script>
-        // ==========================================
-        // 1. STORAGE MODULE (utils.js & storage.js)
-        // ==========================================
         const DEFAULT_TEACHERS = [
             { id: "101", name: "Drs. Ahmad Dahlan" },
             { id: "102", name: "Siti Rahmawati, S.Pd" },
@@ -779,7 +816,6 @@
             { category: "Kelas XII", name: "XII IPS 2" }
         ];
 
-        // LocalStorage Initialization (Compatible with Stage 2 transaction updates & Stage 9 hashed/plain PIN)
         let transactions = JSON.parse(localStorage.getItem('schoolLockerTransactions_v2')) || [];
         let teacherDB = JSON.parse(localStorage.getItem('schoolTeacherDB_v1')) || DEFAULT_TEACHERS;
         let lockerDB = JSON.parse(localStorage.getItem('schoolLockerDB_v1')) || DEFAULT_LOCKERS;
@@ -789,14 +825,13 @@
         let isAdminAuthenticated = false;
         let autoLogoutTimer = null;
         let chartInstances = {};
+        let realtimePollInterval = null;
 
-        // Utility: Escape HTML for security
         function escapeHtml(str) {
             if (!str) return '';
             return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
         }
 
-        // Utility: Simple hash for PIN (Stage 9 security requirement)
         function hashPin(pin) {
             let hash = 0;
             for (let i = 0; i < pin.length; i++) {
@@ -806,87 +841,131 @@
             return hash.toString();
         }
 
-        // ==========================================
-        // 2. CLOUD SYNC & OFFLINE QUEUE MODULE (Stage 8)
-        // ==========================================
+        async function fetchRealtimeCloudData() {
+            if (!gasWebhookUrl) return;
+            try {
+                const response = await fetch(gasWebhookUrl);
+                const data = await response.json();
+                if (data && data.status === "success") {
+                    if (data.teachers && data.teachers.length > 0) teacherDB = data.teachers;
+                    if (data.lockers && data.lockers.length > 0) {
+                        lockerDB = data.lockers.map(l => typeof l === 'string' ? { category: 'Kelas', name: l.replace('Loker ', '') } : l);
+                    }
+                    if (data.adminPin) adminPin = data.adminPin;
+                    if (data.transactions) {
+                        transactions = data.transactions.map(t => ({
+                            id: t.id,
+                            teacherId: t.teacherId || '-',
+                            teacherName: t.teacherName,
+                            lockerClass: t.lockerId || t.lockerClass,
+                            startPeriod: '1',
+                            endPeriod: '10',
+                            timeTake: t.borrowTime || t.timeTake,
+                            rawTakeTime: t.borrowTime || t.rawTakeTime,
+                            timeReturn: t.returnTime || t.timeReturn || '',
+                            rawReturnTime: t.returnTime || t.rawReturnTime || '',
+                            duration: t.duration || '',
+                            status: t.status || 'BORROWED',
+                            signature: t.signature || ''
+                        }));
+                    }
+                    saveMasterState();
+                    saveAndSyncTransactions(false); // Save locally without echoing loop
+                    updateSyncBadge(true, "Cloud Realtime Synced");
+                }
+            } catch (e) {
+                updateSyncBadge(false, "Offline / Connection Slow");
+            }
+        }
+
+        function updateSyncBadge(isOnline, text) {
+            const dot = document.getElementById('syncDot');
+            const txt = document.getElementById('syncText');
+            if (dot) dot.className = isOnline ? "w-2 h-2 rounded-full bg-emerald-400" : "w-2 h-2 rounded-full bg-amber-400 animate-pulse";
+            if (txt) txt.innerText = text;
+        }
+
         async function syncTransactionToCloud(txData) {
             if (!gasWebhookUrl) return;
             const payload = {
-                id: txData.id,
-                teacherId: txData.teacherId,
-                teacherName: txData.teacherName,
-                lockerClass: txData.lockerClass,
-                startPeriod: txData.startPeriod,
-                endPeriod: txData.endPeriod,
-                timeTake: txData.timeTake,
-                timeReturn: txData.timeReturn || '',
-                duration: txData.duration || '',
-                status: txData.status
+                action: "SYNC_TRANSACTION",
+                data: {
+                    id: txData.id,
+                    teacherId: txData.teacherId,
+                    teacherName: txData.teacherName,
+                    lockerId: txData.lockerClass,
+                    borrowTime: txData.timeTake,
+                    returnTime: txData.timeReturn || '',
+                    duration: txData.duration || '',
+                    status: txData.status,
+                    signature: txData.signature || ''
+                }
             };
 
             try {
-                const response = await fetch(gasWebhookUrl, {
+                await fetch(gasWebhookUrl, {
                     method: 'POST',
                     mode: 'no-cors',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                document.getElementById('syncDot').className = "w-2 h-2 rounded-full bg-emerald-400";
-                document.getElementById('syncText').innerText = "Cloud Synced";
+                updateSyncBadge(true, "Synced to Cloud");
             } catch (err) {
-                // Offline fallback
                 offlineQueue.push(payload);
                 localStorage.setItem('schoolOfflineQueue_v1', JSON.stringify(offlineQueue));
-                document.getElementById('syncDot').className = "w-2 h-2 rounded-full bg-amber-400 animate-pulse";
-                document.getElementById('syncText').innerText = "Offline Queue (" + offlineQueue.length + ")";
+                updateSyncBadge(false, "Offline Queue (" + offlineQueue.length + ")");
                 updateQueueCounter();
             }
         }
 
-        async function manualSyncQueue() {
-            if (!gasWebhookUrl) {
-                showToast('URL Google Apps Script belum disetel!', 'warning');
+        function openGasSyncModal() {
+            const input = document.getElementById('quickGasUrlInput');
+            if (input) input.value = gasWebhookUrl;
+            testGasConnection();
+            document.getElementById('gasSyncModal').classList.remove('hidden');
+        }
+
+        function closeGasSyncModal() {
+            document.getElementById('gasSyncModal').classList.add('hidden');
+        }
+
+        async function testGasConnection() {
+            const dot = document.getElementById('quickSyncDot');
+            const txt = document.getElementById('quickSyncText');
+            const url = document.getElementById('quickGasUrlInput').value.trim();
+            if (!url) {
+                dot.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
+                txt.innerText = "Status: URL Belum Diisi";
                 return;
             }
-            if (offlineQueue.length === 0) {
-                showToast('Antrean offline kosong.', 'info');
-                return;
-            }
-            showToast('Menyinkronkan ' + offlineQueue.length + ' data ke Cloud...', 'info');
-            let failed = [];
-            for (let item of offlineQueue) {
-                try {
-                    await fetch(gasWebhookUrl, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(item)
-                    });
-                } catch (e) {
-                    failed.push(item);
+            txt.innerText = "Status: Menguji Koneksi...";
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+                if (data && data.status === "success") {
+                    dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500";
+                    txt.innerText = "Status: 🟢 Terhubung dengan Cloud GAS";
+                } else {
+                    dot.className = "w-2.5 h-2.5 rounded-full bg-amber-500";
+                    txt.innerText = "Status: ⚠️ Terhubung (Respon Tidak Standar)";
                 }
+            } catch (e) {
+                dot.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
+                txt.innerText = "Status: 🔴 Gagal Terhubung (Cek URL / CORS)";
             }
-            offlineQueue = failed;
-            localStorage.setItem('schoolOfflineQueue_v1', JSON.stringify(offlineQueue));
-            updateQueueCounter();
-            showToast('Sinkronisasi cloud selesai!', 'success');
         }
 
-        function updateQueueCounter() {
-            const el = document.getElementById('offlineQueueCount');
-            if (el) el.innerText = "Antrean offline tersimpan: " + offlineQueue.length + " data";
-        }
-
-        function saveGasUrl() {
-            const url = document.getElementById('gasUrlInput').value.trim();
+        function saveQuickGasUrl() {
+            const url = document.getElementById('quickGasUrlInput').value.trim();
             gasWebhookUrl = url;
             localStorage.setItem('schoolGasWebhookUrl_v1', url);
-            showToast('URL Google Apps Script disimpan!', 'success');
+            const urlInput = document.getElementById('gasUrlInput');
+            if (urlInput) urlInput.value = url;
+            showToast('URL Google Apps Script Berhasil Disimpan!', 'success');
+            closeGasSyncModal();
+            fetchRealtimeCloudData();
         }
 
-        // ==========================================
-        // 3. CANVAS & SIGNATURE MODULE
-        // ==========================================
         const canvas = document.getElementById('signatureCanvas');
         const ctx = canvas.getContext('2d');
         let isDrawing = false;
@@ -911,7 +990,11 @@
             renderRealtimeDashboard();
             updateClock();
             setInterval(updateClock, 1000);
-            setInterval(checkLateTransactions, 60000); // Check late transactions every min
+            setInterval(checkLateTransactions, 60000);
+            
+            // Auto real-time poll every 5 seconds if GAS URL exists
+            realtimePollInterval = setInterval(fetchRealtimeCloudData, 5000);
+            
             updateQueueCounter();
             const urlInput = document.getElementById('gasUrlInput');
             if (urlInput) urlInput.value = gasWebhookUrl;
@@ -962,9 +1045,6 @@
             if (placeholder) placeholder.classList.remove('hidden');
         }
 
-        // ==========================================
-        // 4. TRANSACTION & DASHBOARD MODULE (Stages 1, 2, 3)
-        // ==========================================
         function checkLateTransactions() {
             let updated = false;
             const now = new Date();
@@ -972,7 +1052,7 @@
                 if (tx.status === 'BORROWED') {
                     const takeTime = new Date(tx.rawTakeTime);
                     const diffHours = (now - takeTime) / (1000 * 60 * 60);
-                    if (diffHours > 4) { // Stage 3: > 4 hours is late
+                    if (diffHours > 4) {
                         tx.status = 'LATE';
                         updated = true;
                     }
@@ -1012,14 +1092,12 @@
             const signatureData = hasSigned ? canvas.toDataURL() : '';
 
             if (actionType === 'Ambil') {
-                // Check if this locker is already borrowed
                 const activeTx = transactions.find(t => t.lockerClass === lockerClass && (t.status === 'BORROWED' || t.status === 'LATE'));
                 if (activeTx) {
                     showToast(`Loker ${lockerClass} sedang dipinjam oleh ${activeTx.teacherName}! Harap dikembalikan dulu.`, 'warning');
                     return;
                 }
 
-                // Stage 2: Create ONE active transaction
                 const newTx = {
                     id: 'TX-' + Date.now(),
                     teacherId: teacherId,
@@ -1039,7 +1117,6 @@
                 syncTransactionToCloud(newTx);
                 showToast(`Kunci ${lockerClass} berhasil DICATAT DIPINJAM`, 'success');
             } else {
-                // Stage 2: Update existing active transaction for this locker
                 const activeTx = transactions.find(t => t.lockerClass === lockerClass && (t.status === 'BORROWED' || t.status === 'LATE'));
                 if (!activeTx) {
                     showToast(`Tidak ada catatan kunci ${lockerClass} yang sedang dipinjam!`, 'warning');
@@ -1050,7 +1127,6 @@
                 activeTx.rawReturnTime = now.toISOString();
                 activeTx.status = 'RETURNED';
 
-                // Calculate duration
                 const takeDate = new Date(activeTx.rawTakeTime);
                 const diffMs = now - takeDate;
                 const diffMins = Math.floor(diffMs / 60000);
@@ -1069,13 +1145,12 @@
             clearCanvas();
         }
 
-        function saveAndSyncTransactions() {
+        function saveAndSyncTransactions(shouldCloudSync = true) {
             localStorage.setItem('schoolLockerTransactions_v2', JSON.stringify(transactions));
             renderTransactions();
             renderRealtimeDashboard();
         }
 
-        // Stage 1: Render Real-time Locker Dashboard
         function renderRealtimeDashboard() {
             const container = document.getElementById('realtimeLockerDashboard');
             if (!container) return;
@@ -1246,7 +1321,6 @@
             const total = transactions.length;
             const borrowed = transactions.filter(t => t.status === 'BORROWED').length;
             const late = transactions.filter(t => t.status === 'LATE').length;
-            const returned = transactions.filter(t => t.status === 'RETURNED').length;
 
             const statTotal = document.getElementById('statTotal');
             const statBorrowed = document.getElementById('statBorrowed');
@@ -1257,9 +1331,6 @@
             if (statLate) statLate.innerText = late;
         }
 
-        // ==========================================
-        // 5. STAGE 6: TEACHER HISTORY POPUP MODULE
-        // ==========================================
         function openTeacherHistory(teacherName) {
             document.getElementById('modalTeacherTitle').innerText = `Riwayat Peminjaman: ${teacherName}`;
             const tbody = document.getElementById('teacherHistoryTableBody');
@@ -1291,9 +1362,6 @@
             document.getElementById('teacherHistoryModal').classList.add('hidden');
         }
 
-        // ==========================================
-        // 6. STAGE 4 & 5: STATISTICS & CHART.JS MODULE
-        // ==========================================
         function renderAdminStats() {
             const totalAll = transactions.length;
             const borrowAll = transactions.filter(t => t.status === 'BORROWED').length;
@@ -1305,7 +1373,6 @@
             document.getElementById('statReturnAll').innerText = returnAll;
             document.getElementById('statLateAll').innerText = lateAll;
 
-            // Frequency calculation
             const teacherFreq = {};
             const lockerFreq = {};
             transactions.forEach(t => {
@@ -1313,7 +1380,6 @@
                 lockerFreq[t.lockerClass] = (lockerFreq[t.lockerClass] || 0) + 1;
             });
 
-            // Top Teachers
             const sortedTeachers = Object.entries(teacherFreq).sort((a,b) => b[1] - a[1]).slice(0, 5);
             const tContainer = document.getElementById('topTeachersList');
             tContainer.innerHTML = '';
@@ -1330,7 +1396,6 @@
                 });
             }
 
-            // Top Lockers
             const sortedLockers = Object.entries(lockerFreq).sort((a,b) => b[1] - a[1]).slice(0, 5);
             const lContainer = document.getElementById('topLockersList');
             lContainer.innerHTML = '';
@@ -1349,7 +1414,6 @@
         }
 
         function renderCharts() {
-            // Daily transactions chart
             const dailyCounts = {};
             transactions.forEach(t => {
                 const dateKey = t.timeTake.split(',')[0] || 'Hari ini';
@@ -1375,7 +1439,6 @@
                 options: { responsive: true, maintainAspectRatio: false }
             });
 
-            // Top lockers chart
             const lockerCounts = {};
             transactions.forEach(t => {
                 lockerCounts[t.lockerClass] = (lockerCounts[t.lockerClass] || 0) + 1;
@@ -1398,9 +1461,6 @@
             });
         }
 
-        // ==========================================
-        // 7. STAGE 7: BACKUP & RESTORE MODULE
-        // ==========================================
         function exportJSONBackup() {
             const backupObj = {
                 transactions: transactions,
@@ -1445,17 +1505,9 @@
             reader.readAsText(file);
         }
 
-        function exportExcelBackup() {
-            exportToCSV();
-        }
+        function exportExcelBackup() { exportToCSV(); }
+        function importExcelBackup(event) { handleExcelImport(event); }
 
-        function importExcelBackup(event) {
-            handleExcelImport(event);
-        }
-
-        // ==========================================
-        // 8. STAGE 9: SECURITY & ADMIN MODULE
-        // ==========================================
         function requestAdminAccess() {
             if (isAdminAuthenticated) {
                 switchView('admin');
@@ -1472,7 +1524,6 @@
 
         function verifyAdminPin() {
             const inputPin = document.getElementById('adminPinInput').value;
-            // Compatible with plain text or hashed PIN
             const isMatch = (inputPin === adminPin) || (hashPin(inputPin) === adminPin);
             if (isMatch) {
                 isAdminAuthenticated = true;
@@ -1496,7 +1547,6 @@
 
         function resetAutoLogoutTimer() {
             if (autoLogoutTimer) clearTimeout(autoLogoutTimer);
-            // Auto logout after 15 minutes of inactivity
             autoLogoutTimer = setTimeout(() => {
                 if (isAdminAuthenticated) {
                     adminLogout();
@@ -1508,7 +1558,7 @@
         window.addEventListener('mousemove', () => { if (isAdminAuthenticated) resetAutoLogoutTimer(); });
         window.addEventListener('keypress', () => { if (isAdminAuthenticated) resetAutoLogoutTimer(); });
 
-        function changeAdminPin(e) {
+        async function changeAdminPin(e) {
             e.preventDefault();
             const oldPin = document.getElementById('oldPinInput').value;
             const newPin = document.getElementById('newPinInput').value;
@@ -1528,15 +1578,25 @@
                 return;
             }
 
-            adminPin = hashPin(newPin); // Store hashed PIN securely
+            adminPin = hashPin(newPin);
             localStorage.setItem('schoolAdminPin_v1', adminPin);
+
+            // Sync PIN to GAS Cloud if available
+            if (gasWebhookUrl) {
+                try {
+                    await fetch(gasWebhookUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: "UPDATE_PIN", newPin: adminPin })
+                    });
+                } catch(e) {}
+            }
+
             showToast('PIN Admin berhasil diperbarui!', 'success');
             e.target.reset();
         }
 
-        // ==========================================
-        // 9. VIEW SWITCHING & SUBTABS
-        // ==========================================
         function switchView(mode) {
             const viewReceptionist = document.getElementById('viewReceptionist');
             const viewAdmin = document.getElementById('viewAdmin');
@@ -1591,9 +1651,6 @@
             if (subTab === 'reports') generateReport();
         }
 
-        // ==========================================
-        // 10. EXISTING MASTER DATA & REPORTS MODULES
-        // ==========================================
         function syncMasterDataToSelects() {
             const idDatalist = document.getElementById('teacherIdSuggestions');
             const nameDatalist = document.getElementById('teacherNameSuggestions');
@@ -1643,12 +1700,30 @@
             if (found) { document.getElementById('teacherId').value = found.id; }
         }
 
-        function saveMasterState() {
+        async function saveMasterState() {
             localStorage.setItem('schoolTeacherDB_v1', JSON.stringify(teacherDB));
             localStorage.setItem('schoolLockerDB_v1', JSON.stringify(lockerDB));
             syncMasterDataToSelects();
             renderAdminTeachers();
             renderAdminLockers();
+
+            // Cloud sync master data if GAS URL is available
+            if (gasWebhookUrl) {
+                try {
+                    await fetch(gasWebhookUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: "UPDATE_TEACHERS", teachers: teacherDB })
+                    });
+                    await fetch(gasWebhookUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: "UPDATE_LOCKERS", lockers: lockerDB.map(l => `Loker ${l.name}`) })
+                    });
+                } catch(e) {}
+            }
         }
 
         function renderAdminTeachers() {
@@ -1934,7 +2009,7 @@
                         <p class="mb-1">Brebes, ${nowLongStr}</p>
                         <p class="font-bold text-slate-900">Kepala SMA Negeri 2 Brebes</p>
                         <div class="h-16"></div>
-                        <p class="font-bold underline text-slate-900">( Sri Ningsih, M.Pd )</p>
+                        <p class="font-bold underline text-slate-900">( Sri Ningsih, M.Pd. )</p>
                         <p class="text-slate-600">NIP. 19750204 200701 2 009</p>
                     </div>
                 </div>
@@ -1968,6 +2043,25 @@
             saveAndSyncTransactions();
             closeModal();
             showToast('Seluruh transaksi direset', 'info');
+        }
+
+        function manualSyncQueue() {
+            if (!gasWebhookUrl) { showToast('URL Google Apps Script belum disetel!', 'warning'); return; }
+            fetchRealtimeCloudData();
+            showToast('Proses sinkronisasi cloud dipicu!', 'info');
+        }
+
+        function saveGasUrl() {
+            const url = document.getElementById('gasUrlInput').value.trim();
+            gasWebhookUrl = url;
+            localStorage.setItem('schoolGasWebhookUrl_v1', url);
+            showToast('URL Google Apps Script disimpan!', 'success');
+            fetchRealtimeCloudData();
+        }
+
+        function updateQueueCounter() {
+            const el = document.getElementById('offlineQueueCount');
+            if (el) el.innerText = "Antrean offline tersimpan: " + offlineQueue.length + " data";
         }
 
         function showToast(message, type = 'info') {
